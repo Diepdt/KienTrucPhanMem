@@ -1,7 +1,9 @@
+# FILE: bookstore1/urls.py
 from django.contrib import admin
-from django.urls import path, include # Nhớ import include
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('books.urls')), # Trang chủ sẽ hiện danh sách sách luôn
+    # Trỏ tất cả đường dẫn gốc về file books/urls.py ở trên
+    path('', include('books.urls')),
 ]
