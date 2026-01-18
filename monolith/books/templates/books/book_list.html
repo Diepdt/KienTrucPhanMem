@@ -1,24 +1,53 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 
 <head>
-    <title>Book Store</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Store - Cửa hàng bán sách online</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 
 <body>
-    <h1>Danh mục sách (Book Catalog)</h1>
-
-    <div style="display: flex; flex-wrap: wrap;">
-        {% for book in books %}
-        <div style="border: 1px solid #ccc; margin: 10px; padding: 10px; width: 200px;">
-            <h3>{{ book.title }}</h3>
-            <p>Tác giả: {{ book.author }}</p>
-            <p>Giá: ${{ book.price }}</p>
-            <p>Còn lại: {{ book.stock }}</p>
-
-            <a href="{% url 'add_to_cart' book.id %}">Thêm vào giỏ</a>
+    <div class="navbar">
+        <div class="navbar-left">
+            {% if request.session.customer_id %}
+            <span>👤 Xin chào, {{ request.session.customer_name }}!</span>
+            <a href="{% url 'cart_detail' %}">🛒 Giỏ hàng</a>
+            <a href="{% url 'logout' %}">🚪 Đăng xuất</a>
+            {% else %}
+            <a href="{% url 'login' %}">🔑 Đăng nhập</a>
+            <a href="{% url 'register' %}">📝 Đăng ký</a>
+            {% endif %}
         </div>
-        {% endfor %}
+    </div>
+
+    <div class="container">
+        <h1>📚 Danh mục sách</h1>
+
+        <div class="book-grid">
+            {% for book in books %}
+            <div class="book-card">
+                <h3>{{ book.title }}</h3>
+                <p><strong>✍️ Tác giả:</strong> {{ book.author }}</p>
+                <p class="price">${{ book.price|floatformat:2 }}</p>
+                <p class="stock {% if book.stock < 5 %}low{% endif %}">
+                    📦 Còn lại: <strong>{{ book.stock }}</strong> cuốn
+                </p>
+
+                {% if request.session.customer_id %}
+                <a href="{% url 'add_to_cart' book.id %}" class="btn btn-primary">
+                    ➕ Thêm vào giỏ
+                </a>
+                {% else %}
+                <p class="login-required">
+                    ⚠️ Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để mua hàng
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </body>
 

@@ -1,35 +1,75 @@
+{% load static %}
+{% load math_filters %}
 <!DOCTYPE html>
 <html>
 
 <head>
-    <title>Giỏ hàng của tôi</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giỏ hàng - Book Store</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 
 <body>
-    <h1>Giỏ hàng của bạn</h1>
-    <a href="/">Quay lại mua tiếp</a>
-    <hr>
+    <div class="navbar">
+        <div class="navbar-left">
+            <span>👤 {{ request.session.customer_name }}</span>
+            <a href="{% url 'book_list' %}">📚 Danh sách sách</a>
+            <a href="{% url 'logout' %}">🚪 Đăng xuất</a>
+        </div>
+    </div>
 
-    {% if items %}
-    <table border="1" cellpadding="10">
-        <tr>
-            <th>Tên sách</th>
-            <th>Giá</th>
-            <th>Số lượng</th>
-            <th>Thành tiền</th>
-        </tr>
-        {% for item in items %}
-        <tr>
-            <td>{{ item.book.title }}</td>
-            <td>${{ item.book.price }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>(Tự tính sau)</td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p>Giỏ hàng đang trống!</p>
-    {% endif %}
+    <div class="container">
+        <div class="cart-header">
+            <h1>🛒 Giỏ hàng của bạn</h1>
+            <a href="{% url 'book_list' %}">← Quay lại mua hàng</a>
+        </div>
+
+        {% if items %}
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Tên sách</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Tổng tiền</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td><strong>{{ item.book.title }}</strong></td>
+                    <td>${{ item.book.price|floatformat:2 }}</td>
+                    <td>
+                        <div class="quantity-control">
+                            <a href="{% url 'update_cart_item' item.id %}?action=decrease" class="btn btn-info">−</a>
+                            <strong>{{ item.quantity }}</strong>
+                            <a href="{% url 'update_cart_item' item.id %}?action=increase" class="btn btn-success">+</a>
+                        </div>
+                    </td>
+                    <td><strong>${{ item.book.price|mul:item.quantity|floatformat:2 }}</strong></td>
+                    <td>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-danger">🗑️ Xóa</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="cart-summary">
+            <h2>💰 Tóm tắt giỏ hàng</h2>
+            <p class="cart-total">Tổng cộng: ${{ total_price|floatformat:2 }}</p>
+            <button class="btn btn-primary">💳 Thanh toán</button>
+        </div>
+        {% else %}
+        <div class="empty-cart">
+            <p>🛒 Giỏ hàng trống</p>
+            <a href="{% url 'book_list' %}" class="btn btn-primary" style="display: inline-block; width: auto;">Tiếp tục
+                mua sắm</a>
+        </div>
+        {% endif %}
+    </div>
 </body>
 
 </html>

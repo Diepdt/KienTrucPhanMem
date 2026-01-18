@@ -1,6 +1,18 @@
 from django.shortcuts import render, redirect
 from .models import Customer
 
+def register_view(request):
+    if request.method == "POST":
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        try:
+            Customer.objects.create(name=name, email=email, password=password)
+            return redirect('login')
+        except:
+            return render(request, 'accounts/register.html', {'error': 'Email đã tồn tại'})
+    return render(request, 'accounts/register.html')
+
 def login_view(request):
     if request.method == "POST":
         email = request.POST.get('email')
