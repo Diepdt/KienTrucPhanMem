@@ -80,7 +80,8 @@
                 </p>
 
                 {% if request.session.customer_id %}
-                <button onclick="addToCart({{ book.id }}, '{{ book.title }}')" class="btn btn-primary">
+                <button class="btn btn-primary" data-url="{% url 'clean:add_to_cart' book.id %}"
+                    onclick="addToCart(this, '{{ book.title|escapejs }}')">
                     Thêm vào giỏ
                 </button>
                 {% else %}
@@ -94,12 +95,15 @@
     </div>
 
     <script>
-        function addToCart(bookId, bookTitle) {
-            const url = `/clean/cart/add/${bookId}/`;
+        function addToCart(buttonElement, bookTitle) {
+            // Lấy URL từ attribute data-url
+            const url = buttonElement.getAttribute('data-url');
+
             fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
                 .then(response => response.json())
@@ -128,9 +132,6 @@
             }, 3000);
         }
     </script>
-</body>
-
-</html>
 </body>
 
 </html>

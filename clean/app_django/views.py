@@ -1,19 +1,14 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-import sys
-import os
-from pathlib import Path
 
+# Import UseCases (đã gộp gọn lại)
 from clean.core.usecases.cart_usecases import (
-    AddBookToCartUseCase, ListBooksUseCase, LoginUseCase,
+    AddBookToCartUseCase, ListBooksUseCase, LoginUseCase, RegisterUseCase,
     GetCartUseCase, RemoveFromCartUseCase, UpdateCartQuantityUseCase
 )
+# Import Repositories
 from clean.infrastructure.repositories import (
     DjangoCustomerRepository, DjangoBookRepository, DjangoCartRepository
-)
-from clean.core.usecases.cart_usecases import (
-    AddBookToCartUseCase, ListBooksUseCase, LoginUseCase, RegisterUseCase, # <--- Thêm
-    GetCartUseCase, RemoveFromCartUseCase, UpdateCartQuantityUseCase
 )
 
 customer_repo = DjangoCustomerRepository()
@@ -35,6 +30,12 @@ def add_to_cart_view(request, book_id):
     add_to_cart_usecase = AddBookToCartUseCase(cart_repo, book_repo, customer_repo)
     result = add_to_cart_usecase.execute(customer_id, book_id)
     
+    # --- FIX QUAN TRỌNG: Xử lý dữ liệu trước khi trả về JSON ---
+    # Kết quả trả về từ UseCase chứa object 'Cart' (Entity) không thể chuyển thành JSON.
+    # Ta chỉ cần trả về success và message.
+    if 'cart' in result:
+        del result['cart'] # Xóa object phức tạp đi
+    
     return JsonResponse(result, status=200 if result['success'] else 400)
 
 def cart_detail_view(request):
@@ -50,6 +51,7 @@ def cart_detail_view(request):
         return render(request, 'clean/cart/cart_detail.html', {'items': [], 'total_price': 0})
     
     cart = result['cart']
+    # Truyền entity cart vào template (Template xử lý được object Python)
     return render(request, 'clean/cart/cart_detail.html', {'items': cart.items, 'total_price': cart.get_total_price()})
 
 def remove_from_cart_view(request, book_id):
@@ -75,11 +77,13 @@ def update_cart_quantity_view(request, book_id):
         return redirect('clean:cart_detail')
     
     new_qty = 0
+    # Tìm item và tính toán số lượng mới
     for item in cart.items:
         if item.book_id == book_id:
             new_qty = item.quantity + 1 if action == 'increase' else max(0, item.quantity - 1)
             break
-    
+            
+    # Gọi UseCase cập nhật
     update_usecase = UpdateCartQuantityUseCase(cart_repo)
     update_usecase.execute(customer_id, book_id, new_qty)
     return redirect('clean:cart_detail')
