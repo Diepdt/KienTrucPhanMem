@@ -14,6 +14,16 @@ class ICustomerRepository(ABC):
     def get_by_email(self, email: str) -> Optional[Customer]:
         """Lấy customer theo email"""
         pass
+    
+    @abstractmethod
+    def create(self, customer: Customer) -> Customer:
+        """Tạo customer mới"""
+        pass
+
+    @abstractmethod
+    def create(self, customer: Customer) -> Customer:
+        """Tạo mới customer"""
+        pass
 
 class IBookRepository(ABC):
     """Interface: Repository cho Book"""

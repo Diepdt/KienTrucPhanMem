@@ -1,4 +1,4 @@
-from clean.core.domain.entities import Cart, Book
+from clean.core.domain.entities import Cart, Book, Customer
 from clean.core.interfaces.repositories import ICartRepository, IBookRepository, ICustomerRepository
 
 class AddBookToCartUseCase:
@@ -80,3 +80,19 @@ class UpdateCartQuantityUseCase:
         cart.update_quantity(book_id, quantity)
         self.cart_repo.save(cart)
         return {"success": True, "message": "Cập nhật thành công"}
+
+class RegisterUseCase:
+    def __init__(self, customer_repository: ICustomerRepository):
+        self.customer_repo = customer_repository
+    
+    def execute(self, name: str, email: str, password: str) -> dict:
+        # Kiểm tra email tồn tại
+        existing = self.customer_repo.get_by_email(email)
+        if existing:
+            return {"success": False, "error": "Email đã tồn tại"}
+        
+        # Tạo customer mới (Entity)
+        new_customer = Customer(id=None, name=name, email=email, password=password)
+        saved_customer = self.customer_repo.create(new_customer)
+        
+        return {"success": True, "customer": saved_customer}

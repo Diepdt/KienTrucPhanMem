@@ -11,6 +11,10 @@ from clean.core.usecases.cart_usecases import (
 from clean.infrastructure.repositories import (
     DjangoCustomerRepository, DjangoBookRepository, DjangoCartRepository
 )
+from clean.core.usecases.cart_usecases import (
+    AddBookToCartUseCase, ListBooksUseCase, LoginUseCase, RegisterUseCase, # <--- Thêm
+    GetCartUseCase, RemoveFromCartUseCase, UpdateCartQuantityUseCase
+)
 
 customer_repo = DjangoCustomerRepository()
 book_repo = DjangoBookRepository()
@@ -26,14 +30,12 @@ def add_to_cart_view(request, book_id):
     """View: Thêm vào giỏ hàng"""
     customer_id = request.session.get('customer_id')
     if not customer_id:
-        return redirect('clean:login')
+        return JsonResponse({"success": False, "error": "Vui lòng đăng nhập"}, status=401)
     
     add_to_cart_usecase = AddBookToCartUseCase(cart_repo, book_repo, customer_repo)
     result = add_to_cart_usecase.execute(customer_id, book_id)
     
-    if not result['success']:
-        return JsonResponse(result, status=400)
-    return redirect('clean:cart_detail')
+    return JsonResponse(result, status=200 if result['success'] else 400)
 
 def cart_detail_view(request):
     """View: Chi tiết giỏ hàng"""
@@ -105,3 +107,20 @@ def logout_view(request):
     """View: Đăng xuất"""
     request.session.flush()
     return redirect('clean:login')
+
+def register_view(request):
+    """View: Đăng ký"""
+    if request.method == "POST":
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        register_usecase = RegisterUseCase(customer_repo)
+        result = register_usecase.execute(name, email, password)
+        
+        if result['success']:
+            return redirect('clean:login')
+        else:
+            return render(request, 'clean/accounts/register.html', {'error': result['error']})
+    
+    return render(request, 'clean/accounts/register.html')

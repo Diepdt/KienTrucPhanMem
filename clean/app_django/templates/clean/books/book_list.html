@@ -1,54 +1,136 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Store (Clean Arch)</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 4px;
+            color: white;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-in-out;
+        }
+
+        .notification.success {
+            background-color: #28a745;
+        }
+
+        .notification.error {
+            background-color: #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div class="header"
-        style="background-color: #f8f9fa; padding: 15px; border-bottom: 1px solid #ddd; margin-bottom: 20px;">
-        <a href="{% url 'clean:book_list' %}" style="font-weight: bold; text-decoration: none; font-size: 20px;">📚 Book
-            Store</a>
-
-        <span style="float: right;">
+    <div class="navbar">
+        <div class="navbar-left">
             {% if request.session.customer_id %}
-            <span>Xin chào, <b>{{ request.session.customer_name }}</b></span> |
-            <a href="{% url 'clean:cart_detail' %}">🛒 Giỏ hàng</a> |
+            <span>👤 Xin chào, {{ request.session.customer_name }}!</span>
+            <a href="{% url 'clean:cart_detail' %}">Giỏ hàng</a>
             <a href="{% url 'clean:logout' %}">Đăng xuất</a>
             {% else %}
             <a href="{% url 'clean:login' %}">Đăng nhập</a>
+            <a href="{% url 'clean:register' %}">Đăng ký</a>
             {% endif %}
-        </span>
+        </div>
     </div>
 
     <div class="container">
         <h1>Danh mục sách (Clean Architecture)</h1>
-
-        <div class="book-grid" style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <div class="book-grid">
             {% for book in books %}
-            <div class="book-item"
-                style="border: 1px solid #ccc; padding: 15px; width: 220px; border-radius: 8px; text-align: center;">
-                <h3 style="height: 50px; overflow: hidden;">{{ book.title }}</h3>
-                <p>Tác giả: {{ book.author }}</p>
-                <p style="color: #d9534f; font-weight: bold;">{{ book.price }} đ</p>
-                <p>Kho: {{ book.stock }}</p>
+            <div class="book-card">
+                <h3>{{ book.title }}</h3>
+                <p><strong>Tác giả:</strong> {{ book.author }}</p>
+                <p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
+                <p class="stock {% if book.stock < 5 %}low{% endif %}">
+                    Còn lại: <strong>{{ book.stock }}</strong> cuốn
+                </p>
 
-                <a href="{% url 'clean:add_to_cart' book.id %}" class="btn-add">
-                    <button
-                        style="background-color: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px;">
-                        Thêm vào giỏ
-                    </button>
-                </a>
+                {% if request.session.customer_id %}
+                <button onclick="addToCart({{ book.id }}, '{{ book.title }}')" class="btn btn-primary">
+                    Thêm vào giỏ
+                </button>
+                {% else %}
+                <p class="login-required">
+                    Vui lòng <a href="{% url 'clean:login' %}">đăng nhập</a> để mua hàng
+                </p>
+                {% endif %}
             </div>
-            {% empty %}
-            <p>Chưa có sách nào trong hệ thống.</p>
             {% endfor %}
         </div>
     </div>
+
+    <script>
+        function addToCart(bookId, bookTitle) {
+            const url = `/clean/cart/add/${bookId}/`;
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`✓ Đã thêm "${bookTitle}" vào giỏ hàng`, 'success');
+                    } else {
+                        showNotification(`✗ ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Có lỗi xảy ra, vui lòng thử lại', 'error');
+                });
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>
 </body>
 
 </html>

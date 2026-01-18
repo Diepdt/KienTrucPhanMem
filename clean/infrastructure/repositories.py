@@ -22,6 +22,14 @@ class DjangoCustomerRepository(ICustomerRepository):
         except CustomerModel.DoesNotExist:
             return None
     
+    def create(self, customer: Customer) -> Customer:
+        model = CustomerModel.objects.create(
+            name=customer.name,
+            email=customer.email,
+            password=customer.password
+        )
+        return self._model_to_entity(model)
+    
     @staticmethod
     def _model_to_entity(model: CustomerModel) -> Customer:
         """Chuyển Django Model thành Domain Entity"""
@@ -99,7 +107,7 @@ class DjangoCartRepository(ICartRepository):
     def _model_to_entity(model: CartModel) -> Cart:
         """Chuyển Django Model thành Domain Entity"""
         items = []
-        for item_model in model.cartitem_set.all():
+        for item_model in model.items.all():
             book_model = item_model.book
             book = Book(
                 id=book_model.id,
