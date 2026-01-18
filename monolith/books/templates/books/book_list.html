@@ -15,14 +15,11 @@
             <p>Tác giả: {{ book.author }}</p>
             <p>Giá: ${{ book.price }}</p>
             <p>Còn lại: {{ book.stock }}</p>
-            <button>Thêm vào giỏ</button>
+
+            <a href="{% url 'add_to_cart' book.id %}">Thêm vào giỏ</a>
         </div>
         {% endfor %}
     </div>
-    <p>Debug ID: {{ book.id }}</p>
-    <a href="{% url 'add_to_cart' book.id %}">
-        <button>Thêm vào giỏ</button>
-    </a>
 </body>
 
 </html>
