@@ -4,14 +4,11 @@ import sys
 import os
 from pathlib import Path
 
-# Thêm parent directories vào path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-
-from core.usecases.cart_usecases import (
+from clean.core.usecases.cart_usecases import (
     AddBookToCartUseCase, ListBooksUseCase, LoginUseCase,
     GetCartUseCase, RemoveFromCartUseCase, UpdateCartQuantityUseCase
 )
-from infrastructure.repositories import (
+from clean.infrastructure.repositories import (
     DjangoCustomerRepository, DjangoBookRepository, DjangoCartRepository
 )
 

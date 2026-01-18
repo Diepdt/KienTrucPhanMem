@@ -1,5 +1,5 @@
-from core.domain.entities import Cart, Book
-from core.interfaces.repositories import ICartRepository, IBookRepository, ICustomerRepository
+from clean.core.domain.entities import Cart, Book
+from clean.core.interfaces.repositories import ICartRepository, IBookRepository, ICustomerRepository
 
 class AddBookToCartUseCase:
     def __init__(self, cart_repository: ICartRepository, book_repository: IBookRepository, customer_repository: ICustomerRepository):

@@ -14,6 +14,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'clean.infrastructure',  # Để Django tìm thấy models.py
+    'clean.app_django',      # Để Django tìm thấy templates và templatetags
 ]
 
 MIDDLEWARE = [
@@ -48,8 +50,12 @@ WSGI_APPLICATION = 'clean.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'bookstore1',  # Tên DB cũ của bạn
+        'USER': 'root',        # User của bạn
+        'PASSWORD': '123456',        # Pass của bạn
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 

@@ -4,6 +4,7 @@ from . import views
 app_name = 'clean'
 
 urlpatterns = [
+    path('', views.book_list_view, name='home'),  # Đường dẫn gốc (Trang chủ)
     path('books/', views.book_list_view, name='book_list'),
     path('cart/', views.cart_detail_view, name='cart_detail'),
     path('cart/add/<int:book_id>/', views.add_to_cart_view, name='add_to_cart'),

@@ -1,9 +1,7 @@
 from typing import List, Optional
-from core.domain.entities import Customer, Book, Cart, CartItem
-from core.interfaces.repositories import ICustomerRepository, IBookRepository, ICartRepository
-from monolith.accounts.models import Customer as CustomerModel
-from monolith.books.models import Book as BookModel
-from monolith.cart.models import Cart as CartModel, CartItem as CartItemModel
+from clean.core.domain.entities import Customer, Book, Cart, CartItem
+from clean.core.interfaces.repositories import ICustomerRepository, IBookRepository, ICartRepository
+from .models import CustomerModel, BookModel, CartModel, CartItemModel
 
 class DjangoCustomerRepository(ICustomerRepository):
     """Django Implementation của ICustomerRepository"""
