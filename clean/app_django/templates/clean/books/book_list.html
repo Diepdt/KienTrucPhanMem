@@ -1,42 +1,51 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Store - Clean Architecture</title>
+    <title>Book Store (Clean Arch)</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 
 <body>
-    <div class="navbar">
-        <div class="navbar-left">
+    <div class="header"
+        style="background-color: #f8f9fa; padding: 15px; border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+        <a href="{% url 'clean:book_list' %}" style="font-weight: bold; text-decoration: none; font-size: 20px;">📚 Book
+            Store</a>
+
+        <span style="float: right;">
             {% if request.session.customer_id %}
-            <span>👤 {{ request.session.customer_name }} (Clean)</span>
-            <a href="{% url 'clean:cart_detail' %}">Giỏ hàng</a>
+            <span>Xin chào, <b>{{ request.session.customer_name }}</b></span> |
+            <a href="{% url 'clean:cart_detail' %}">🛒 Giỏ hàng</a> |
             <a href="{% url 'clean:logout' %}">Đăng xuất</a>
             {% else %}
             <a href="{% url 'clean:login' %}">Đăng nhập</a>
             {% endif %}
-        </div>
+        </span>
     </div>
 
     <div class="container">
-        <h1>📚 Danh mục sách (Clean Architecture)</h1>
-        <div class="book-grid">
+        <h1>Danh mục sách (Clean Architecture)</h1>
+
+        <div class="book-grid" style="display: flex; flex-wrap: wrap; gap: 20px;">
             {% for book in books %}
-            <div class="book-card">
-                <h3>{{ book.title }}</h3>
-                <p><strong>Tác giả:</strong> {{ book.author }}</p>
-                <p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
-                <p class="stock">Còn: {{ book.stock }} cuốn</p>
-                {% if request.session.customer_id %}
-                <a href="{% url 'clean:add_to_cart' book.id %}" class="btn btn-primary">Thêm vào giỏ</a>
-                {% else %}
-                <p class="login-required"><a href="{% url 'clean:login' %}">Đăng nhập để mua</a></p>
-                {% endif %}
+            <div class="book-item"
+                style="border: 1px solid #ccc; padding: 15px; width: 220px; border-radius: 8px; text-align: center;">
+                <h3 style="height: 50px; overflow: hidden;">{{ book.title }}</h3>
+                <p>Tác giả: {{ book.author }}</p>
+                <p style="color: #d9534f; font-weight: bold;">{{ book.price }} đ</p>
+                <p>Kho: {{ book.stock }}</p>
+
+                <a href="{% url 'clean:add_to_cart' book.id %}" class="btn-add">
+                    <button
+                        style="background-color: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px;">
+                        Thêm vào giỏ
+                    </button>
+                </a>
             </div>
+            {% empty %}
+            <p>Chưa có sách nào trong hệ thống.</p>
             {% endfor %}
         </div>
     </div>

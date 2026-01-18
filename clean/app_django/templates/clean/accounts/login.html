@@ -1,30 +1,48 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
-    <title>Đăng nhập - Clean</title>
+    <title>Đăng nhập</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 
-<body>
-    <div class="form-container">
-        <h1>Đăng nhập (Clean Architecture)</h1>
-        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+<body style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5;">
+
+    <div class="login-container"
+        style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 350px;">
+        <h2 style="text-align: center;">Đăng nhập (Clean Arch)</h2>
+
+        {% if error %}
+        <p style="color: red; text-align: center; background: #ffe6e6; padding: 10px; border-radius: 4px;">{{ error }}
+        </p>
+        {% endif %}
+
         <form method="POST">
             {% csrf_token %}
-            <div class="form-group">
-                <label>Email:</label>
-                <input type="email" name="email" required>
+            <div style="margin-bottom: 15px;">
+                <label>Email:</label><br>
+                <input type="email" name="email" required
+                    style="width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;">
             </div>
-            <div class="form-group">
-                <label>Mật khẩu:</label>
-                <input type="password" name="password" required>
+
+            <div style="margin-bottom: 15px;">
+                <label>Mật khẩu:</label><br>
+                <input type="password" name="password" required
+                    style="width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;">
             </div>
-            <button type="submit" class="btn btn-primary">Đăng nhập</button>
+
+            <button type="submit"
+                style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Đăng
+                nhập</button>
         </form>
+
+        <p style="text-align: center; margin-top: 15px;">
+            (Chưa có tài khoản? Hãy dùng bản Monolith để đăng ký)
+        </p>
     </div>
+
 </body>
 
 </html>

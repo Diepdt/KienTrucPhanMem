@@ -4,7 +4,6 @@ class CustomerModel(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = 'accounts_customer'
@@ -18,7 +17,6 @@ class BookModel(models.Model):
     author = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = 'books_book'
@@ -30,7 +28,6 @@ class BookModel(models.Model):
 class CartModel(models.Model):
     customer = models.OneToOneField(CustomerModel, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         db_table = 'cart_cart'
