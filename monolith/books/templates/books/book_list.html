@@ -19,6 +19,10 @@
         </div>
         {% endfor %}
     </div>
+    <p>Debug ID: {{ book.id }}</p>
+    <a href="{% url 'add_to_cart' book.id %}">
+        <button>Thêm vào giỏ</button>
+    </a>
 </body>
 
 </html>

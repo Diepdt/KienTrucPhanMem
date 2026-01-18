@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Giỏ hàng của tôi</title>
+</head>
+
+<body>
+    <h1>Giỏ hàng của bạn</h1>
+    <a href="/">Quay lại mua tiếp</a>
+    <hr>
+
+    {% if items %}
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>Tên sách</th>
+            <th>Giá</th>
+            <th>Số lượng</th>
+            <th>Thành tiền</th>
+        </tr>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.book.title }}</td>
+            <td>${{ item.book.price }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>(Tự tính sau)</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>Giỏ hàng đang trống!</p>
+    {% endif %}
+</body>
+
+</html>
