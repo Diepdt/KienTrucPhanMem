@@ -14,35 +14,35 @@
         <div class="navbar-left">
             {% if request.session.customer_id %}
             <span>👤 Xin chào, {{ request.session.customer_name }}!</span>
-            <a href="{% url 'cart_detail' %}">🛒 Giỏ hàng</a>
-            <a href="{% url 'logout' %}">🚪 Đăng xuất</a>
+            <a href="{% url 'cart_detail' %}">Giỏ hàng</a>
+            <a href="{% url 'logout' %}">Đăng xuất</a>
             {% else %}
-            <a href="{% url 'login' %}">🔑 Đăng nhập</a>
-            <a href="{% url 'register' %}">📝 Đăng ký</a>
+            <a href="{% url 'login' %}">Đăng nhập</a>
+            <a href="{% url 'register' %}">Đăng ký</a>
             {% endif %}
         </div>
     </div>
 
     <div class="container">
-        <h1>📚 Danh mục sách</h1>
+        <h1>Danh mục sách</h1>
 
         <div class="book-grid">
             {% for book in books %}
             <div class="book-card">
                 <h3>{{ book.title }}</h3>
-                <p><strong>✍️ Tác giả:</strong> {{ book.author }}</p>
-                <p class="price">${{ book.price|floatformat:2 }}</p>
+                <p><strong>Tác giả:</strong> {{ book.author }}</p>
+                <p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
                 <p class="stock {% if book.stock < 5 %}low{% endif %}">
-                    📦 Còn lại: <strong>{{ book.stock }}</strong> cuốn
+                    Còn lại: <strong>{{ book.stock }}</strong> cuốn
                 </p>
 
                 {% if request.session.customer_id %}
                 <a href="{% url 'add_to_cart' book.id %}" class="btn btn-primary">
-                    ➕ Thêm vào giỏ
+                    Thêm vào giỏ
                 </a>
                 {% else %}
                 <p class="login-required">
-                    ⚠️ Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để mua hàng
+                    Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để mua hàng
                 </p>
                 {% endif %}
             </div>

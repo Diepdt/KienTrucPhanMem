@@ -11,22 +11,22 @@
 
 <body>
     <div class="form-container">
-        <h1>🔐 Đăng nhập</h1>
+        <h1>Đăng nhập</h1>
         {% if error %}<div class="error">{{ error }}</div>{% endif %}
         <form method="POST">
             {% csrf_token %}
             <div class="form-group">
-                <label>📧 Email:</label>
+                <label>Email:</label>
                 <input type="email" name="email" required>
             </div>
             <div class="form-group">
-                <label>🔑 Mật khẩu:</label>
+                <label>Mật khẩu:</label>
                 <input type="password" name="password" required>
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Đăng nhập</button>
         </form>
         <p>Chưa có tài khoản? <a href="{% url 'register' %}">Đăng ký ngay</a></p>
-        <p><a href="{% url 'book_list' %}">← Quay lại cửa hàng</a></p>
+        <p><a href="{% url 'book_list' %}">Quay lại cửa hàng</a></p>
     </div>
 </body>
 

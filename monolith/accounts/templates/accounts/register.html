@@ -11,20 +11,20 @@
 
 <body>
     <div class="form-container">
-        <h1>📝 Đăng ký tài khoản</h1>
+        <h1>Đăng ký tài khoản</h1>
         {% if error %}<div class="error">{{ error }}</div>{% endif %}
         <form method="POST">
             {% csrf_token %}
             <div class="form-group">
-                <label>👤 Tên của bạn:</label>
+                <label>Tên của bạn:</label>
                 <input type="text" name="name" required>
             </div>
             <div class="form-group">
-                <label>📧 Email:</label>
+                <label>Email:</label>
                 <input type="email" name="email" required>
             </div>
             <div class="form-group">
-                <label>🔑 Mật khẩu:</label>
+                <label>Mật khẩu:</label>
                 <input type="password" name="password" required>
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Đăng ký</button>

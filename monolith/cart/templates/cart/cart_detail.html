@@ -14,15 +14,15 @@
     <div class="navbar">
         <div class="navbar-left">
             <span>👤 {{ request.session.customer_name }}</span>
-            <a href="{% url 'book_list' %}">📚 Danh sách sách</a>
-            <a href="{% url 'logout' %}">🚪 Đăng xuất</a>
+            <a href="{% url 'book_list' %}">Danh mục sách</a>
+            <a href="{% url 'logout' %}">Đăng xuất</a>
         </div>
     </div>
 
     <div class="container">
         <div class="cart-header">
-            <h1>🛒 Giỏ hàng của bạn</h1>
-            <a href="{% url 'book_list' %}">← Quay lại mua hàng</a>
+            <h1>Giỏ hàng</h1>
+            <a href="{% url 'book_list' %}">Danh mục sách</a>
         </div>
 
         {% if items %}
@@ -40,7 +40,7 @@
                 {% for item in items %}
                 <tr>
                     <td><strong>{{ item.book.title }}</strong></td>
-                    <td>${{ item.book.price|floatformat:2 }}</td>
+                    <td>{{ item.book.price|floatformat:0 }} VNĐ</td>
                     <td>
                         <div class="quantity-control">
                             <a href="{% url 'update_cart_item' item.id %}?action=decrease" class="btn btn-info">−</a>
@@ -48,9 +48,9 @@
                             <a href="{% url 'update_cart_item' item.id %}?action=increase" class="btn btn-success">+</a>
                         </div>
                     </td>
-                    <td><strong>${{ item.book.price|mul:item.quantity|floatformat:2 }}</strong></td>
+                    <td><strong>{{ item.book.price|mul:item.quantity|floatformat:0 }} VNĐ</strong></td>
                     <td>
-                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-danger">🗑️ Xóa</a>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-danger">Xóa</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -58,13 +58,12 @@
         </table>
 
         <div class="cart-summary">
-            <h2>💰 Tóm tắt giỏ hàng</h2>
-            <p class="cart-total">Tổng cộng: ${{ total_price|floatformat:2 }}</p>
-            <button class="btn btn-primary">💳 Thanh toán</button>
+            <p class="cart-total">Tổng cộng: {{ total_price|floatformat:0 }} VNĐ</p>
+            <button class="btn btn-primary">Thanh toán</button>
         </div>
         {% else %}
         <div class="empty-cart">
-            <p>🛒 Giỏ hàng trống</p>
+            <p>Giỏ hàng trống</p>
             <a href="{% url 'book_list' %}" class="btn btn-primary" style="display: inline-block; width: auto;">Tiếp tục
                 mua sắm</a>
         </div>
