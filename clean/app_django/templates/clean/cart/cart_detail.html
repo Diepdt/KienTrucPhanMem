@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Giỏ hàng - Clean</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <span>Giỏ hàng (Clean)</span>
+            <a href="{% url 'clean:book_list' %}">Sách</a>
+            <a href="{% url 'clean:logout' %}">Đăng xuất</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="cart-header">
+            <h1>🛒 Giỏ hàng</h1>
+            <a href="{% url 'clean:book_list' %}">← Tiếp tục mua</a>
+        </div>
+
+        {% if items %}
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Tên sách</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Tổng</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td><strong>{{ item.book.title }}</strong></td>
+                    <td>{{ item.book.price|floatformat:0 }} VNĐ</td>
+                    <td>
+                        <div class="quantity-control">
+                            <a href="{% url 'clean:update_cart_quantity' item.book_id %}?action=decrease"
+                                class="btn btn-info">−</a>
+                            <strong>{{ item.quantity }}</strong>
+                            <a href="{% url 'clean:update_cart_quantity' item.book_id %}?action=increase"
+                                class="btn btn-success">+</a>
+                        </div>
+                    </td>
+                    <td><strong>{{ item.get_total|floatformat:0 }} VNĐ</strong></td>
+                    <td><a href="{% url 'clean:remove_from_cart' item.book_id %}" class="btn btn-danger">Xóa</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="cart-summary">
+            <p class="cart-total">Tổng: {{ total_price|floatformat:0 }} VNĐ</p>
+        </div>
+        {% else %}
+        <div class="empty-cart">
+            <p>Giỏ hàng trống</p>
+            <a href="{% url 'clean:book_list' %}" class="btn btn-primary">Mua hàng</a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

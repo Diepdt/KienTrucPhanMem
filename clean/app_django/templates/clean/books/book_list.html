@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Store - Clean Architecture</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            {% if request.session.customer_id %}
+            <span>👤 {{ request.session.customer_name }} (Clean)</span>
+            <a href="{% url 'clean:cart_detail' %}">Giỏ hàng</a>
+            <a href="{% url 'clean:logout' %}">Đăng xuất</a>
+            {% else %}
+            <a href="{% url 'clean:login' %}">Đăng nhập</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>📚 Danh mục sách (Clean Architecture)</h1>
+        <div class="book-grid">
+            {% for book in books %}
+            <div class="book-card">
+                <h3>{{ book.title }}</h3>
+                <p><strong>Tác giả:</strong> {{ book.author }}</p>
+                <p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
+                <p class="stock">Còn: {{ book.stock }} cuốn</p>
+                {% if request.session.customer_id %}
+                <a href="{% url 'clean:add_to_cart' book.id %}" class="btn btn-primary">Thêm vào giỏ</a>
+                {% else %}
+                <p class="login-required"><a href="{% url 'clean:login' %}">Đăng nhập để mua</a></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+
+</html>
