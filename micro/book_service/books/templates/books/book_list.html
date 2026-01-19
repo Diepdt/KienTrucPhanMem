@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Store - Microservices</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333; }
+        .navbar { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { font-size: 1.5rem; }
+        .navbar-links { display: flex; gap: 20px; align-items: center; }
+        .navbar-links a { color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
+        .navbar-links a:hover { background-color: #34495e; }
+        .user-info { color: #3498db; font-weight: bold; }
+        .cart-count { background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: #2c3e50; }
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .book-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .book-card h3 { color: #2c3e50; margin-bottom: 10px; }
+        .book-card p { margin: 8px 0; color: #666; }
+        .price { color: #e74c3c; font-size: 1.3rem; font-weight: bold; }
+        .stock { color: #27ae60; }
+        .stock.low { color: #e67e22; }
+        .stock.out { color: #e74c3c; }
+        .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .btn-primary { background-color: #3498db; color: white; width: 100%; margin-top: 15px; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-primary:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 5px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.3s; z-index: 1000; }
+        .toast.success { background-color: #27ae60; }
+        .toast.error { background-color: #e74c3c; }
+        .toast.show { opacity: 1; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff; border-radius: 50%; border-top-color: transparent; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>📚 Book Store (Microservices)</h1>
+        <div class="navbar-links">
+            <div id="guest-menu">
+                <a href="/login/">Đăng nhập</a>
+                <a href="/register/">Đăng ký</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span class="user-info">👤 <span id="user-name"></span></span>
+                <a href="/cart/">🛒 Giỏ hàng <span class="cart-count" id="cart-count">0</span></a>
+                <a href="#" onclick="logout()">Đăng xuất</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>📖 Danh mục sách</h2>
+        <div class="book-grid">
+{% for book in books %}
+<div class="book-card">
+<h3>{{ book.title }}</h3>
+<p><strong>Tác giả:</strong> {{ book.author }}</p>
+<p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
+{% if book.stock == 0 %}
+<p class="stock out">❌ Hết hàng</p>
+<button class="btn btn-primary" disabled>Hết hàng</button>
+{% elif book.stock < 5 %}
+<p class="stock low">⚠️ Còn {{ book.stock }} cuốn</p>
+<button class="btn btn-primary add-to-cart-btn" data-book-id="{{ book.id }}" data-book-title="{{ book.title }}">🛒 Thêm vào giỏ</button>
+{% else %}
+<p class="stock">✅ Còn {{ book.stock }} cuốn</p>
+<button class="btn btn-primary add-to-cart-btn" data-book-id="{{ book.id }}" data-book-title="{{ book.title }}">🛒 Thêm vào giỏ</button>
+{% endif %}
+</div>
+{% empty %}
+<p>Chưa có sách nào trong hệ thống.</p>
+{% endfor %}
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const CART_SERVICE_URL = '{{ cart_service_url }}';
+        const CUSTOMER_SERVICE_URL = '{{ customer_service_url }}';
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(function() { toast.classList.remove('show'); }, 3000);
+        }
+
+        function getCustomer() {
+            const data = localStorage.getItem('customer');
+            return data ? JSON.parse(data) : null;
+        }
+
+        function updateUI() {
+            const customer = getCustomer();
+            const guestMenu = document.getElementById('guest-menu');
+            const userMenu = document.getElementById('user-menu');
+            if (customer) {
+                guestMenu.style.display = 'none';
+                userMenu.style.display = 'flex';
+                userMenu.style.alignItems = 'center';
+                userMenu.style.gap = '20px';
+                document.getElementById('user-name').textContent = customer.name;
+                loadCartCount();
+            } else {
+                guestMenu.style.display = 'flex';
+                guestMenu.style.gap = '10px';
+                userMenu.style.display = 'none';
+            }
+        }
+
+        async function loadCartCount() {
+            const customer = getCustomer();
+            if (!customer) return;
+            try {
+                const response = await fetch(CART_SERVICE_URL + '/api/cart/' + customer.id + '/');
+                const data = await response.json();
+                document.getElementById('cart-count').textContent = data.item_count || 0;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function addToCart(bookId, bookTitle, button) {
+            const customer = getCustomer();
+            if (!customer) {
+                showToast('Vui lòng đăng nhập để thêm vào giỏ hàng!', 'error');
+                window.location.href = '/login/';
+                return;
+            }
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="spinner"></span> Đang thêm...';
+            button.disabled = true;
+            try {
+                const response = await fetch(CART_SERVICE_URL + '/api/cart/add/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customer_id: customer.id, book_id: bookId, quantity: 1 })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Đã thêm "' + bookTitle + '" vào giỏ hàng!', 'success');
+                    loadCartCount();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Không thể kết nối đến Cart Service!', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('customer');
+            showToast('Đã đăng xuất!', 'success');
+            setTimeout(function() { window.location.reload(); }, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUI();
+            document.querySelectorAll('.add-to-cart-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    addToCart(this.dataset.bookId, this.dataset.bookTitle, this);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
