@@ -1,54 +1,132 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Store - Cửa hàng bán sách online</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Book Store - Monolith</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333; }
+        .navbar { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { font-size: 1.5rem; }
+        .navbar-links { display: flex; gap: 20px; align-items: center; }
+        .navbar-links a { color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
+        .navbar-links a:hover { background-color: #34495e; }
+        .navbar-links span { color: #3498db; font-weight: bold; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: #2c3e50; }
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .book-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .book-card h3 { color: #2c3e50; margin-bottom: 10px; }
+        .book-card p { margin: 8px 0; color: #666; }
+        .price { color: #e74c3c; font-size: 1.3rem; font-weight: bold; }
+        .stock { color: #27ae60; }
+        .stock.low { color: #e67e22; }
+        .stock.out { color: #e74c3c; }
+        .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; text-decoration: none; text-align: center; }
+        .btn-primary { background-color: #3498db; color: white; width: 100%; margin-top: 15px; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-disabled { background-color: #bdc3c7; color: white; width: 100%; margin-top: 15px; cursor: not-allowed; }
+        .login-required { color: #7f8c8d; font-style: italic; margin-top: 15px; text-align: center; }
+        .login-required a { color: #3498db; }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 5px; color: white; font-weight: bold; z-index: 1000; animation: slideIn 0.3s ease-in-out; }
+        .toast.success { background-color: #27ae60; }
+        .toast.error { background-color: #e74c3c; }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .cart-badge { background-color: #e74c3c; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8rem; margin-left: 5px; }
+    </style>
 </head>
-
 <body>
-    <div class="navbar">
-        <div class="navbar-left">
+    <nav class="navbar">
+        <h1>📚 Book Store (Monolith)</h1>
+        <div class="navbar-links">
             {% if request.session.customer_id %}
             <span>👤 Xin chào, {{ request.session.customer_name }}!</span>
-            <a href="{% url 'cart_detail' %}">Giỏ hàng</a>
+            <a href="{% url 'cart_detail' %}">🛒 Giỏ hàng <span id="cart-badge" class="cart-badge" style="display: none;">0</span></a>
             <a href="{% url 'logout' %}">Đăng xuất</a>
             {% else %}
             <a href="{% url 'login' %}">Đăng nhập</a>
             <a href="{% url 'register' %}">Đăng ký</a>
             {% endif %}
         </div>
-    </div>
+    </nav>
 
     <div class="container">
-        <h1>Danh mục sách</h1>
-
+        <h2>📖 Danh mục sách</h2>
         <div class="book-grid">
             {% for book in books %}
             <div class="book-card">
                 <h3>{{ book.title }}</h3>
                 <p><strong>Tác giả:</strong> {{ book.author }}</p>
                 <p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
-                <p class="stock {% if book.stock < 5 %}low{% endif %}">
-                    Còn lại: <strong>{{ book.stock }}</strong> cuốn
-                </p>
-
+                {% if book.stock == 0 %}
+                <p class="stock out">❌ Hết hàng</p>
+                <span class="btn btn-disabled">Hết hàng</span>
+                {% elif book.stock < 5 %}
+                <p class="stock low">⚠️ Còn {{ book.stock }} cuốn</p>
                 {% if request.session.customer_id %}
-                <a href="{% url 'add_to_cart' book.id %}" class="btn btn-primary">
-                    Thêm vào giỏ
-                </a>
+                <button onclick="addToCart({{ book.id }})" class="btn btn-primary">🛒 Thêm vào giỏ</button>
                 {% else %}
-                <p class="login-required">
-                    Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để mua hàng
-                </p>
+                <p class="login-required">Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để mua hàng</p>
+                {% endif %}
+                {% else %}
+                <p class="stock">✅ Còn {{ book.stock }} cuốn</p>
+                {% if request.session.customer_id %}
+                <button onclick="addToCart({{ book.id }})" class="btn btn-primary">🛒 Thêm vào giỏ</button>
+                {% else %}
+                <p class="login-required">Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để mua hàng</p>
+                {% endif %}
                 {% endif %}
             </div>
+            {% empty %}
+            <p>Chưa có sách nào trong hệ thống.</p>
             {% endfor %}
         </div>
     </div>
-</body>
 
+    <script>
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function updateCartBadge(count) {
+        const badge = document.getElementById('cart-badge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    function addToCart(bookId) {
+        fetch(`/cart/add/${bookId}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                updateCartBadge(data.cart_count);
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Có lỗi xảy ra!', 'error');
+        });
+    }
+    </script>
+</body>
 </html>

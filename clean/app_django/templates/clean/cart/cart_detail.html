@@ -1,75 +1,86 @@
-{% load static %}
 <!DOCTYPE html>
-<html>
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giỏ hàng - Book Store (Clean)</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Giỏ hàng - Book Store</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333; }
+        .navbar { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { font-size: 1.5rem; }
+        .navbar a { color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
+        .navbar a:hover { background-color: #34495e; }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: #2c3e50; }
+        .cart-empty { text-align: center; padding: 50px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .cart-empty p { font-size: 1.2rem; color: #666; margin-bottom: 20px; }
+        .cart-table { width: 100%; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+        .cart-table table { width: 100%; border-collapse: collapse; }
+        .cart-table th { background-color: #2c3e50; color: white; padding: 15px; text-align: left; }
+        .cart-table td { padding: 15px; border-bottom: 1px solid #eee; }
+        .quantity-controls { display: flex; align-items: center; gap: 10px; }
+        .quantity-btn { width: 30px; height: 30px; border: none; background-color: #3498db; color: white; border-radius: 5px; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .quantity-btn:hover { background-color: #2980b9; }
+        .remove-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        .remove-btn:hover { background-color: #c0392b; }
+        .cart-summary { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: right; }
+        .total-price { font-size: 1.5rem; color: #e74c3c; font-weight: bold; }
+        .btn-back { display: inline-block; padding: 10px 20px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+    </style>
 </head>
-
 <body>
-    <div class="navbar">
-        <div class="navbar-left">
-            <span>👤 {{ request.session.customer_name }}</span>
-            <a href="{% url 'clean:book_list' %}">Danh mục sách</a>
+    <nav class="navbar">
+        <h1>📚 Book Store (Clean Architecture)</h1>
+        <div>
+            <a href="{% url 'clean:book_list' %}">← Tiếp tục mua sắm</a>
             <a href="{% url 'clean:logout' %}">Đăng xuất</a>
         </div>
-    </div>
+    </nav>
 
     <div class="container">
-        <div class="cart-header">
-            <h1>Giỏ hàng</h1>
-            <a href="{% url 'clean:book_list' %}">Danh mục sách</a>
-        </div>
-
+        <h2>🛒 Giỏ hàng của bạn</h2>
+        
         {% if items %}
-        <table class="cart-table">
-            <thead>
-                <tr>
-                    <th>Tên sách</th>
-                    <th>Giá</th>
-                    <th>Số lượng</th>
-                    <th>Tổng tiền</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    <td><strong>{{ item.book.title }}</strong></td>
-                    <td>{{ item.book.price|floatformat:0 }} VNĐ</td>
-                    <td>
-                        <div class="quantity-control">
-                            <a href="{% url 'clean:update_cart_quantity' item.book_id %}?action=decrease"
-                                class="btn btn-info">−</a>
-                            <strong>{{ item.quantity }}</strong>
-                            <a href="{% url 'clean:update_cart_quantity' item.book_id %}?action=increase"
-                                class="btn btn-success">+</a>
-                        </div>
-                    </td>
-                    <td><strong>{{ item.get_total|floatformat:0 }} VNĐ</strong></td>
-                    <td>
-                        <a href="{% url 'clean:remove_from_cart' item.book_id %}" class="btn btn-danger">Xóa</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
+        <div class="cart-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sách</th>
+                        <th>Đơn giá</th>
+                        <th>Số lượng</th>
+                        <th>Thành tiền</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><strong>{{ item.book.title }}</strong></td>
+                        <td>{{ item.book.price|floatformat:0 }} VNĐ</td>
+                        <td>
+                            <div class="quantity-controls">
+                                <a href="{% url 'clean:update_cart_quantity' item.book_id %}?action=decrease" class="quantity-btn">-</a>
+                                <span>{{ item.quantity }}</span>
+                                <a href="{% url 'clean:update_cart_quantity' item.book_id %}?action=increase" class="quantity-btn">+</a>
+                            </div>
+                        </td>
+                        <td>{{ item.book.price|floatformat:0 }} VNĐ</td>
+                        <td><a href="{% url 'clean:remove_from_cart' item.book_id %}" class="remove-btn">Xóa</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         <div class="cart-summary">
-            <p class="cart-total">Tổng cộng: {{ total_price|floatformat:0 }} VNĐ</p>
-            <button class="btn btn-primary">Thanh toán</button>
+            <p>Tổng cộng: <span class="total-price">{{ total_price|floatformat:0 }} VNĐ</span></p>
         </div>
         {% else %}
-        <div class="empty-cart">
-            <p>Giỏ hàng trống</p>
-            <a href="{% url 'clean:book_list' %}" class="btn btn-primary"
-                style="display: inline-block; width: auto;">Tiếp tục mua sắm</a>
+        <div class="cart-empty">
+            <p>🛒 Giỏ hàng của bạn đang trống</p>
+            <a href="{% url 'clean:book_list' %}" class="btn-back">Tiếp tục mua sắm</a>
         </div>
         {% endif %}
     </div>
 </body>
-
 </html>

@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from .models import Cart, CartItem
 from books.models import Book
 from accounts.models import Customer
@@ -6,6 +7,8 @@ from accounts.models import Customer
 def add_to_cart(request, book_id):
     customer_id = request.session.get('customer_id')
     if not customer_id:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Vui lòng đăng nhập'}, status=401)
         return redirect('login')
 
     try:
@@ -20,10 +23,22 @@ def add_to_cart(request, book_id):
         else:
             cart_item.quantity = 1
         cart_item.save()
+        
+        # Tính tổng số lượng trong giỏ hàng
+        total_items = sum(item.quantity for item in CartItem.objects.filter(cart=cart))
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True, 
+                'message': f'Đã thêm "{book.title}" vào giỏ hàng!',
+                'cart_count': total_items
+            })
     except Customer.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Vui lòng đăng nhập'}, status=401)
         return redirect('login')
 
-    return redirect('cart_detail')
+    return redirect('book_list')
 
 def cart_detail(request):
     customer_id = request.session.get('customer_id')

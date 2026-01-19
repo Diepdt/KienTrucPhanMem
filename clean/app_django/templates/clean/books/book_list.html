@@ -1,137 +1,88 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Store (Clean Arch)</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Book Store - Clean Architecture</title>
     <style>
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 4px;
-            color: white;
-            z-index: 1000;
-            animation: slideIn 0.3s ease-in-out;
-        }
-
-        .notification.success {
-            background-color: #28a745;
-        }
-
-        .notification.error {
-            background-color: #dc3545;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333; }
+        .navbar { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { font-size: 1.5rem; }
+        .navbar-links { display: flex; gap: 20px; align-items: center; }
+        .navbar-links a { color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
+        .navbar-links a:hover { background-color: #34495e; }
+        .navbar-links span { color: #3498db; font-weight: bold; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: #2c3e50; }
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .book-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .book-card h3 { color: #2c3e50; margin-bottom: 10px; }
+        .book-card p { margin: 8px 0; color: #666; }
+        .price { color: #e74c3c; font-size: 1.3rem; font-weight: bold; }
+        .stock { color: #27ae60; }
+        .stock.low { color: #e67e22; }
+        .stock.out { color: #e74c3c; }
+        .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; text-decoration: none; text-align: center; }
+        .btn-primary { background-color: #3498db; color: white; width: 100%; margin-top: 15px; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-disabled { background-color: #bdc3c7; color: white; width: 100%; margin-top: 15px; cursor: not-allowed; }
+        .login-required { color: #7f8c8d; font-style: italic; margin-top: 15px; text-align: center; }
+        .login-required a { color: #3498db; }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 5px; color: white; font-weight: bold; z-index: 1000; animation: slideIn 0.3s ease-in-out; }
+        .toast.success { background-color: #27ae60; }
+        .toast.error { background-color: #e74c3c; }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
-
 <body>
-    <div class="navbar">
-        <div class="navbar-left">
+    <nav class="navbar">
+        <h1>📚 Book Store (Clean Architecture)</h1>
+        <div class="navbar-links">
             {% if request.session.customer_id %}
             <span>👤 Xin chào, {{ request.session.customer_name }}!</span>
-            <a href="{% url 'clean:cart_detail' %}">Giỏ hàng</a>
+            <a href="{% url 'clean:cart_detail' %}">🛒 Giỏ hàng</a>
             <a href="{% url 'clean:logout' %}">Đăng xuất</a>
             {% else %}
             <a href="{% url 'clean:login' %}">Đăng nhập</a>
             <a href="{% url 'clean:register' %}">Đăng ký</a>
             {% endif %}
         </div>
-    </div>
+    </nav>
 
     <div class="container">
-        <h1>Danh mục sách (Clean Architecture)</h1>
+        <h2>📖 Danh mục sách</h2>
         <div class="book-grid">
             {% for book in books %}
             <div class="book-card">
                 <h3>{{ book.title }}</h3>
                 <p><strong>Tác giả:</strong> {{ book.author }}</p>
                 <p class="price">{{ book.price|floatformat:0 }} VNĐ</p>
-                <p class="stock {% if book.stock < 5 %}low{% endif %}">
-                    Còn lại: <strong>{{ book.stock }}</strong> cuốn
-                </p>
-
+                {% if book.stock == 0 %}
+                <p class="stock out">❌ Hết hàng</p>
+                <span class="btn btn-disabled">Hết hàng</span>
+                {% elif book.stock < 5 %}
+                <p class="stock low">⚠️ Còn {{ book.stock }} cuốn</p>
                 {% if request.session.customer_id %}
-                <button class="btn btn-primary" data-url="{% url 'clean:add_to_cart' book.id %}"
-                    onclick="addToCart(this, '{{ book.title|escapejs }}')">
-                    Thêm vào giỏ
-                </button>
+                <a href="{% url 'clean:add_to_cart' book.id %}" class="btn btn-primary">🛒 Thêm vào giỏ</a>
                 {% else %}
-                <p class="login-required">
-                    Vui lòng <a href="{% url 'clean:login' %}">đăng nhập</a> để mua hàng
-                </p>
+                <p class="login-required">Vui lòng <a href="{% url 'clean:login' %}">đăng nhập</a> để mua hàng</p>
+                {% endif %}
+                {% else %}
+                <p class="stock">✅ Còn {{ book.stock }} cuốn</p>
+                {% if request.session.customer_id %}
+                <a href="{% url 'clean:add_to_cart' book.id %}" class="btn btn-primary">🛒 Thêm vào giỏ</a>
+                {% else %}
+                <p class="login-required">Vui lòng <a href="{% url 'clean:login' %}">đăng nhập</a> để mua hàng</p>
+                {% endif %}
                 {% endif %}
             </div>
+            {% empty %}
+            <p>Chưa có sách nào trong hệ thống.</p>
             {% endfor %}
         </div>
     </div>
-
-    <script>
-        function addToCart(buttonElement, bookTitle) {
-            // Lấy URL từ attribute data-url
-            const url = buttonElement.getAttribute('data-url');
-
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification(`✓ Đã thêm "${bookTitle}" vào giỏ hàng`, 'success');
-                    } else {
-                        showNotification(`✗ ${data.error}`, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('Có lỗi xảy ra, vui lòng thử lại', 'error');
-                });
-        }
-
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease-in-out';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-    </script>
 </body>
-
 </html>

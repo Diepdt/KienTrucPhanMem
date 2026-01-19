@@ -25,18 +25,12 @@ def add_to_cart_view(request, book_id):
     """View: Thêm vào giỏ hàng"""
     customer_id = request.session.get('customer_id')
     if not customer_id:
-        return JsonResponse({"success": False, "error": "Vui lòng đăng nhập"}, status=401)
+        return redirect('clean:login')
     
     add_to_cart_usecase = AddBookToCartUseCase(cart_repo, book_repo, customer_repo)
-    result = add_to_cart_usecase.execute(customer_id, book_id)
+    add_to_cart_usecase.execute(customer_id, book_id)
     
-    # --- FIX QUAN TRỌNG: Xử lý dữ liệu trước khi trả về JSON ---
-    # Kết quả trả về từ UseCase chứa object 'Cart' (Entity) không thể chuyển thành JSON.
-    # Ta chỉ cần trả về success và message.
-    if 'cart' in result:
-        del result['cart'] # Xóa object phức tạp đi
-    
-    return JsonResponse(result, status=200 if result['success'] else 400)
+    return redirect('clean:book_list')
 
 def cart_detail_view(request):
     """View: Chi tiết giỏ hàng"""
