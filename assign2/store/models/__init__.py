@@ -2,8 +2,10 @@
 # Import all models from domain packages to make them available at store.models level
 
 from store.models.book.book import Book
+from store.models.book.category import Category
 from store.models.customer.customer import Customer
 from store.models.customer.rating import Rating
+from store.models.customer.address import Address
 from store.models.staff.staff import Staff
 from store.models.order.cart import Cart
 from store.models.order.cart_item import CartItem
@@ -13,8 +15,10 @@ from store.models.order.payment import Payment
 
 __all__ = [
     'Book',
+    'Category',
     'Customer',
     'Rating',
+    'Address',
     'Staff',
     'Cart',
     'CartItem',

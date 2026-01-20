@@ -11,7 +11,15 @@ class Book(models.Model):
         author: Book author name
         price: Book price (decimal)
         stock_quantity: Number of books in stock
+        category: Foreign key to Category (Many-to-One)
     """
+    category = models.ForeignKey(
+        'store.Category',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='books'
+    )
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)

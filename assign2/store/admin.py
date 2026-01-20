@@ -1,17 +1,35 @@
 from django.contrib import admin
 from store.models import (
-    Book, Customer, Rating, Staff,
+    Book, Category, Customer, Rating, Address, Staff,
     Cart, CartItem, Order, OrderItem,
     Shipping, Payment
 )
 
 
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'type', 'get_books_count')
+    search_fields = ('type',)
+    ordering = ('type',)
+    
+    def get_books_count(self, obj):
+        return obj.books.count()
+    get_books_count.short_description = 'Books Count'
+
+
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'author', 'price', 'stock_quantity')
-    list_filter = ('author',)
+    list_display = ('id', 'title', 'author', 'category', 'price', 'stock_quantity')
+    list_filter = ('author', 'category')
     search_fields = ('title', 'author')
     ordering = ('title',)
+
+
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = ('id', 'customer', 'num', 'street', 'city')
+    search_fields = ('customer__name', 'street', 'city')
+    ordering = ('city', 'street')
 
 
 @admin.register(Customer)
