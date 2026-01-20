@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Books - Bookstore{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Books</h1>
+    </div>
+    <div class="col-md-4">
+        <form method="get" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" placeholder="Search books..." value="{{ search_query }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col">
+        <div class="btn-group">
+            <a href="?sort=title" class="btn btn-outline-secondary {% if sort_by == 'title' %}active{% endif %}">Title A-Z</a>
+            <a href="?sort=-title" class="btn btn-outline-secondary {% if sort_by == '-title' %}active{% endif %}">Title Z-A</a>
+            <a href="?sort=price" class="btn btn-outline-secondary {% if sort_by == 'price' %}active{% endif %}">Price Low-High</a>
+            <a href="?sort=-price" class="btn btn-outline-secondary {% if sort_by == '-price' %}active{% endif %}">Price High-Low</a>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+    {% for book in books %}
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ book.title }}</h5>
+                    <p class="card-text text-muted">{{ book.author }}</p>
+                    <p class="card-text">
+                        <strong class="text-primary">${{ book.price }}</strong>
+                    </p>
+                    <p class="card-text">
+                        {% if book.stock_quantity > 0 %}
+                            <span class="badge bg-success">In Stock ({{ book.stock_quantity }})</span>
+                        {% else %}
+                            <span class="badge bg-danger">Out of Stock</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'book:detail' book.id %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                    {% if book.stock_quantity > 0 %}
+                        <form action="{% url 'cart:add' book.id %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-cart-plus"></i> Add to Cart
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No books found. {% if search_query %}Try a different search term.{% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% if books.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if books.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ books.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}">Previous</a>
+                </li>
+            {% endif %}
+            
+            {% for num in books.paginator.page_range %}
+                <li class="page-item {% if books.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&sort={{ sort_by }}">{{ num }}</a>
+                </li>
+            {% endfor %}
+            
+            {% if books.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ books.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}

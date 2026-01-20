@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - Bookstore{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-credit-card"></i> Checkout</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form action="{% url 'cart:checkout_process' %}" method="post">
+            {% csrf_token %}
+            
+            <!-- Shipping Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-truck"></i> Shipping Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address *</label>
+                        <input type="text" name="address" id="address" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="city" class="form-label">City *</label>
+                            <input type="text" name="city" id="city" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="postal_code" class="form-label">Postal Code *</label>
+                            <input type="text" name="postal_code" id="postal_code" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="country" class="form-label">Country</label>
+                        <input type="text" name="country" id="country" class="form-control" value="Vietnam">
+                    </div>
+                    
+                    <h6 class="mt-4">Shipping Method</h6>
+                    {% for method, label in shipping_methods %}
+                        <div class="form-check">
+                            <input class="form-check-input shipping-method" type="radio" name="shipping_method" id="shipping_{{ method }}" value="{{ method }}" data-cost="{{ shipping_costs|default_if_none:'' }}" {% if forloop.first %}checked{% endif %}>
+                            <label class="form-check-label" for="shipping_{{ method }}">
+                                {{ label }} - ${{ shipping_costs|default_if_none:"5.00" }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Payment Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-wallet2"></i> Payment Method</h5>
+                </div>
+                <div class="card-body">
+                    {% for method, label in payment_methods %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="payment_{{ method }}" value="{{ method }}" {% if forloop.first %}checked{% endif %}>
+                            <label class="form-check-label" for="payment_{{ method }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+                <i class="bi bi-check-circle"></i> Place Order
+            </button>
+        </form>
+    </div>
+    
+    <!-- Order Summary -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                {% for item in items %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.book.title }} x {{ item.quantity }}</span>
+                        <span>${{ item.get_subtotal }}</span>
+                    </div>
+                {% endfor %}
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>${{ subtotal }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Shipping:</span>
+                    <span id="shipping-cost">$5.00</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <strong>Total:</strong>
+                    <strong class="text-primary fs-5" id="order-total">${{ subtotal|add:5 }}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'cart:detail' %}" class="btn btn-outline-secondary w-100">
+                <i class="bi bi-arrow-left"></i> Back to Cart
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends 'staff/base_staff.html' %}
+
+{% block title %}Dashboard - Staff Portal{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Books</h5>
+                <h2>{{ stats.total_books }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Low Stock</h5>
+                <h2>{{ stats.low_stock_books }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">Out of Stock</h5>
+                <h2>{{ stats.out_of_stock }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Pending Orders</h5>
+                <h2>{{ stats.pending_orders }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Low Stock Alert</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_books %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Stock</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for book in low_stock_books %}
+                                <tr>
+                                    <td>{{ book.title }}</td>
+                                    <td>
+                                        <span class="badge {% if book.stock_quantity == 0 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                            {{ book.stock_quantity }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'staff:stock_update' book.id %}" class="btn btn-sm btn-outline-primary">
+                                            Update Stock
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-success mb-0"><i class="bi bi-check-circle"></i> All books are well stocked!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Orders</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_orders %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'staff:order_detail' order.id %}">#{{ order.id }}</a>
+                                    </td>
+                                    <td>{{ order.customer.name }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if order.status == 'delivered' %}bg-success
+                                            {% elif order.status == 'cancelled' %}bg-danger
+                                            {% else %}bg-warning text-dark{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>${{ order.total_amount }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted mb-0">No recent orders</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'staff:order_list' %}">View all orders</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
