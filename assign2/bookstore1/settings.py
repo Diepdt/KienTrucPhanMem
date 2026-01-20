@@ -38,11 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Domain Package MVC Architecture App
-    'store',
-    # Legacy apps (can be removed after migration)
-    # 'accounts',
-    # 'books',
-    # 'cart',
+    'store.apps.StoreConfig',
 ]
 
 MIDDLEWARE = [
