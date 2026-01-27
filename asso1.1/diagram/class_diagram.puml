@@ -1,0 +1,341 @@
+@startuml Django Bookstore - Class Diagram (23 Business Classes)
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam classAttributeFontSize 10
+skinparam shadowing false
+
+title Django Bookstore - 23 Business Classes\nDomain Package MVC Architecture
+
+' ==================== BOOK DOMAIN (4 classes) ====================
+package "Book Domain" #LightBlue {
+    class Author {
+        -ID : int
+        -name : String
+        -biography : String
+        -birth_date : date
+        -email : String
+        -website : String
+        -created_at : datetime
+        +get_books_count()
+        +get_total_sales()
+    }
+
+    class Publisher {
+        -ID : int
+        -name : String
+        -address : String
+        -city : String
+        -country : String
+        -website : String
+        -email : String
+        -phone : String
+        -founded_year : int
+        +get_books_count()
+    }
+
+    class Category {
+        -ID : int
+        -type : String
+        +get_books_count()
+    }
+
+    class Book {
+        -ID : int
+        -title : String
+        -author : String
+        -isbn : String
+        -description : String
+        -price : float
+        -stock_quantity : int
+        -pages : int
+        -publication_date : date
+        -created_at : datetime
+        +is_in_stock()
+        +reduce_stock()
+        +add_stock()
+        +get_average_rating()
+        +get_reviews_count()
+    }
+}
+
+' ==================== CUSTOMER DOMAIN (6 classes) ====================
+package "Customer Domain" #LightGreen {
+    class Customer {
+        -ID : int
+        -name : String
+        -email : String
+        -password : String
+        +set_password()
+        +verify_password()
+    }
+
+    class Address {
+        -ID : int
+        -num : String
+        -street : String
+        -city : String
+    }
+
+    class Rating {
+        -ID : int
+        -score : int
+        -comment : String
+        -created_at : datetime
+    }
+
+    class Review {
+        -ID : int
+        -title : String
+        -content : String
+        -rating : int
+        -is_verified_purchase : bool
+        -helpful_votes : int
+        -not_helpful_votes : int
+        -is_approved : bool
+        -created_at : datetime
+        +mark_helpful()
+        +mark_not_helpful()
+        +get_helpfulness_ratio()
+        +verify_purchase()
+    }
+
+    class Wishlist {
+        -ID : int
+        -name : String
+        -is_public : bool
+        -created_at : datetime
+        +get_items_count()
+        +get_total_value()
+        +clear()
+    }
+
+    class WishlistItem {
+        -ID : int
+        -priority : int
+        -notes : String
+        -added_at : datetime
+        +move_to_cart()
+    }
+}
+
+' ==================== STAFF DOMAIN (1 class) ====================
+package "Staff Domain" #LightYellow {
+    class Staff {
+        -ID : int
+        -name : String
+        -email : String
+        -password : String
+        -role : String
+        +set_password()
+        +verify_password()
+        +is_admin()
+        +is_manager()
+    }
+}
+
+' ==================== ORDER DOMAIN (8 classes) ====================
+package "Order Domain" #LightCoral {
+    class Cart {
+        -ID : int
+        -session_key : String
+        -created_at : datetime
+        -updated_at : datetime
+        +get_total()
+        +get_items_count()
+        +clear()
+    }
+
+    class CartItem {
+        -ID : int
+        -quantity : int
+        -added_at : datetime
+        +get_subtotal()
+    }
+
+    class Order {
+        -ID : int
+        -status : String
+        -total : float
+        -notes : String
+        -created_at : datetime
+        -updated_at : datetime
+        +calculate_total()
+        +confirm()
+        +cancel()
+    }
+
+    class OrderItem {
+        -ID : int
+        -quantity : int
+        -price : float
+        +get_subtotal()
+    }
+
+    class Shipping {
+        -ID : int
+        -method : String
+        -address : String
+        -city : String
+        -country : String
+        -cost : float
+        -created_at : datetime
+    }
+
+    class Payment {
+        -ID : int
+        -method : String
+        -amount : float
+        -status : String
+        -transaction_id : String
+        -created_at : datetime
+    }
+
+    class OrderHistory {
+        -ID : int
+        -old_status : String
+        -new_status : String
+        -notes : String
+        -created_at : datetime
+        +log_status_change()
+    }
+
+    class Refund {
+        -ID : int
+        -amount : float
+        -reason : String
+        -reason_details : String
+        -status : String
+        -processed_at : datetime
+        -created_at : datetime
+        +approve()
+        +reject()
+        +process()
+    }
+}
+
+' ==================== PROMOTION DOMAIN (2 classes) ====================
+package "Promotion Domain" #Plum {
+    class Promotion {
+        -ID : int
+        -name : String
+        -description : String
+        -discount_type : String
+        -discount_percent : float
+        -discount_amount : float
+        -start_date : datetime
+        -end_date : datetime
+        -is_active : bool
+        -min_order_amount : float
+        -max_uses : int
+        -current_uses : int
+        +is_valid()
+        +calculate_discount()
+        +apply()
+    }
+
+    class Coupon {
+        -ID : int
+        -code : String
+        -description : String
+        -discount_type : String
+        -discount_percent : float
+        -discount_amount : float
+        -valid_from : datetime
+        -valid_to : datetime
+        -max_uses : int
+        -current_uses : int
+        -min_order_amount : float
+        -is_active : bool
+        +generate_code()
+        +is_valid()
+        +calculate_discount()
+        +redeem()
+    }
+}
+
+' ==================== INVENTORY DOMAIN (2 classes) ====================
+package "Inventory Domain" #LightSkyBlue {
+    class Inventory {
+        -ID : int
+        -quantity : int
+        -reorder_level : int
+        -reorder_quantity : int
+        -location : String
+        -last_restocked : datetime
+        +needs_reorder()
+        +restock()
+        +reduce()
+    }
+
+    class InventoryLog {
+        -ID : int
+        -action : String
+        -quantity : int
+        -notes : String
+        -created_at : datetime
+    }
+}
+
+' ==================== NOTIFICATION DOMAIN (1 class) ====================
+package "Notification Domain" #Wheat {
+    class Notification {
+        -ID : int
+        -recipient_type : String
+        -title : String
+        -message : String
+        -notification_type : String
+        -is_read : bool
+        -created_at : datetime
+        +mark_as_read()
+        +send_to_customer()
+        +send_to_staff()
+    }
+}
+
+' ==================== RELATIONSHIPS ====================
+
+' Book Domain Relationships
+Author "1" -- "0..*" Book : writes >
+Publisher "1" -- "0..*" Book : publishes >
+Category "1" -- "0..*" Book : contains >
+
+' Customer Domain Relationships
+Customer "1" -- "1" Address : has >
+Customer "1" -- "0..*" Rating : gives >
+Customer "1" -- "0..*" Review : writes >
+Customer "1" -- "1" Wishlist : has >
+Wishlist "1" *-- "0..*" WishlistItem : contains >
+WishlistItem "0..*" -- "1" Book : references >
+Rating "0..*" -- "1" Book : rates >
+Review "0..*" -- "1" Book : reviews >
+
+' Cart Relationships
+Customer "1" -- "1" Cart : owns >
+Cart "1" *-- "0..*" CartItem : contains >
+CartItem "0..*" -- "1" Book : references >
+
+' Order Relationships
+Customer "1" -- "0..*" Order : places >
+Staff "1" -- "0..*" Order : processes >
+Order "1" -- "1" Shipping : has >
+Order "1" -- "1" Payment : has >
+Order "1" *-- "1..*" OrderItem : contains >
+OrderItem "0..*" -- "1" Book : references >
+Order "1" -- "0..*" OrderHistory : tracks >
+Order "1" -- "0..*" Refund : has >
+OrderHistory "0..*" -- "0..1" Staff : changed_by >
+Refund "0..*" -- "0..1" Staff : processed_by >
+
+' Inventory Relationships
+Book "1" -- "1" Inventory : tracked_by >
+Inventory "1" -- "0..*" InventoryLog : logs >
+InventoryLog "0..*" -- "0..1" Staff : performed_by >
+
+' Notification Relationships
+Notification "0..*" -- "0..1" Customer : sent_to >
+Notification "0..*" -- "0..1" Staff : sent_to >
+Notification "0..*" -- "0..1" Order : related_to >
+
+@enduml

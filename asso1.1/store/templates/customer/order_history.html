@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Order History - Bookstore{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-bag"></i> Order History</h1>
+
+{% if orders %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td><strong>#{{ order.id }}</strong></td>
+                        <td>{{ order.created_at|date:"F d, Y" }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if order.status == 'delivered' %}bg-success
+                                {% elif order.status == 'cancelled' %}bg-danger
+                                {% elif order.status == 'shipped' %}bg-info
+                                {% else %}bg-warning text-dark{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </td>
+                        <td>${{ order.total_amount }}</td>
+                        <td>
+                            <a href="{% url 'customer:order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> You haven't placed any orders yet.
+        <a href="{% url 'book:list' %}" class="alert-link">Start shopping</a>
+    </div>
+{% endif %}
+{% endblock %}

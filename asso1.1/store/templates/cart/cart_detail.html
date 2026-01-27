@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Cart - Bookstore{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-cart"></i> Shopping Cart</h1>
+
+{% if items %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Book</th>
+                    <th>Author</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'book:detail' item.book.id %}">{{ item.book.title }}</a>
+                        </td>
+                        <td>{{ item.book.author }}</td>
+                        <td>${{ item.book.price }}</td>
+                        <td>
+                            <form action="{% url 'cart:update' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <div class="input-group" style="width: 130px;">
+                                    <input type="number" name="quantity" class="form-control form-control-sm" value="{{ item.quantity }}" min="1" max="{{ item.book.stock_quantity }}">
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </td>
+                        <td><strong>${{ item.get_subtotal }}</strong></td>
+                        <td>
+                            <form action="{% url 'cart:remove' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-primary">
+                    <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                    <td colspan="2"><strong class="fs-5">${{ total_price }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <a href="{% url 'book:list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Continue Shopping
+            </a>
+            <form action="{% url 'cart:clear' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to clear your cart?')">
+                    <i class="bi bi-trash"></i> Clear Cart
+                </button>
+            </form>
+        </div>
+        <a href="{% url 'cart:checkout' %}" class="btn btn-primary btn-lg">
+            Proceed to Checkout <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Your cart is empty.
+        <a href="{% url 'book:list' %}" class="alert-link">Browse our books</a>
+    </div>
+{% endif %}
+{% endblock %}
