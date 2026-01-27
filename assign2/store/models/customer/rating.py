@@ -26,6 +26,7 @@ class Rating(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         help_text="Rating score from 1 to 5"
     )
+    comment = models.CharField(max_length=255, blank=True, null=True)  # Thêm theo diagram
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

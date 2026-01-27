@@ -41,9 +41,9 @@ class CustomerAdmin(admin.ModelAdmin):
 
 @admin.register(Rating)
 class RatingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer', 'book', 'score', 'created_at')
+    list_display = ('id', 'customer', 'book', 'score', 'comment', 'created_at')
     list_filter = ('score', 'created_at')
-    search_fields = ('customer__name', 'book__title')
+    search_fields = ('customer__name', 'book__title', 'comment')
 
 
 @admin.register(Staff)
@@ -76,9 +76,9 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer', 'status', 'total_amount', 'created_at')
-    list_filter = ('status', 'created_at')
-    search_fields = ('customer__name',)
+    list_display = ('id', 'customer', 'staff', 'status', 'total', 'created_at')
+    list_filter = ('status', 'staff', 'created_at')
+    search_fields = ('customer__name', 'staff__name')
     inlines = [OrderItemInline]
     ordering = ('-created_at',)
 

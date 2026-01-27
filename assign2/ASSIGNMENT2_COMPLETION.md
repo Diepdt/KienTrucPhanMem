@@ -100,22 +100,24 @@ monolith/
 
 ---
 
-## 2. DOMAIN MODELS (10 Models)
+## 2. DOMAIN MODELS (12 Models) - Matching UML Class Diagram
 
 ### ✅ Requirement: Domain-specific model structure
 
 | Model | Fields | Status |
 |-------|--------|--------|
-| **Book** | id, title, author, price, stock_quantity | ✅ |
+| **Book** | id, author, title, price, stock, category (FK) | ✅ |
+| **Category** | id, type | ✅ |
 | **Customer** | id, name, email, password | ✅ |
-| **Rating** | customer (FK), book (FK), score (1-5) | ✅ |
+| **Address** | id, num, street, city, customer (FK 1-1) | ✅ |
+| **Rating** | id, score, comment, created_at, customer (FK), book (FK) | ✅ |
 | **Staff** | id, name, email, password, role | ✅ |
-| **Cart** | customer (FK), session_key, created_at, updated_at | ✅ |
-| **CartItem** | cart (FK), book (FK), quantity, added_at | ✅ |
-| **Order** | customer (FK), shipping (FK), payment (FK), status, total_amount | ✅ |
-| **OrderItem** | order (FK), book (FK), quantity, price | ✅ |
-| **Shipping** | method, address, city, postal_code, country, cost | ✅ |
-| **Payment** | method, amount, status, transaction_id | ✅ |
+| **Cart** | id, created_at, customer (FK) | ✅ |
+| **CartItem** | id, quantity, cart (FK), book (FK) | ✅ |
+| **Order** | id, status, total, customer (FK), staff (FK), payment (FK), shipping (FK) | ✅ |
+| **OrderItem** | id, quantity, price, order (FK), book (FK) | ✅ |
+| **Shipping** | id, method, address, city, cost | ✅ |
+| **Payment** | id, method, amount, status | ✅ |
 
 ### Key Features in Models:
 - ✅ Password hashing (Customer & Staff)
@@ -124,6 +126,10 @@ monolith/
 - ✅ Payment status tracking
 - ✅ Unique constraints (Customer email, Rating per customer per book)
 - ✅ Cascading relationships
+- ✅ Category for book classification
+- ✅ Address (One-to-One with Customer)
+- ✅ Staff FK in Order (staff who processed order)
+- ✅ Comment field in Rating
 
 ---
 

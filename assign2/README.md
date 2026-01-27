@@ -49,18 +49,20 @@ store/
 
 ---
 
-## 📊 Domain Models
+## 📊 Domain Models (UML Class Diagram)
 
 ### 1. Book Domain
 | Model | Thuộc tính |
 |-------|------------|
-| **Book** | id, title, author, price, stock_quantity |
+| **Book** | id, author, title, price, stock, category (FK) |
+| **Category** | id, type |
 
 ### 2. Customer Domain
 | Model | Thuộc tính |
 |-------|------------|
 | **Customer** | id, name, email, password |
-| **Rating** | customer (FK), book (FK), score (1-5) |
+| **Address** | id, num, street, city, customer (FK 1-1) |
+| **Rating** | id, score, comment, created_at, customer (FK), book (FK) |
 
 ### 3. Staff Domain
 | Model | Thuộc tính |
@@ -70,12 +72,12 @@ store/
 ### 4. Order Domain
 | Model | Thuộc tính |
 |-------|------------|
-| **Cart** | customer (FK), session_key |
-| **CartItem** | cart (FK), book (FK), quantity |
-| **Order** | customer (FK), shipping (FK), payment (FK), status, total_amount |
-| **OrderItem** | order (FK), book (FK), quantity, price |
-| **Shipping** | method, address, city, postal_code, country, cost |
-| **Payment** | method, amount, status, transaction_id |
+| **Cart** | id, created_at, customer (FK) |
+| **CartItem** | id, quantity, cart (FK), book (FK) |
+| **Order** | id, status, total, customer (FK), staff (FK), payment (FK), shipping (FK) |
+| **OrderItem** | id, quantity, price, order (FK), book (FK) |
+| **Shipping** | id, method, address, city, cost |
+| **Payment** | id, method, amount, status |
 
 ---
 

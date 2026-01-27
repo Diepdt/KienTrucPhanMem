@@ -41,8 +41,16 @@ class Order(models.Model):
         blank=True,
         related_name='order'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    # Staff who processes this order (theo diagram)
+    staff = models.ForeignKey(
+        'store.Staff',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='processed_orders'
+    )
+    status = models.CharField(max_length=255, choices=STATUS_CHOICES, default='pending')
+    total = models.FloatField(default=0)  # Renamed from total_amount theo diagram
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -58,11 +66,11 @@ class Order(models.Model):
 
     def calculate_total(self):
         """Calculate total order amount including shipping."""
-        items_total = sum(item.get_subtotal() for item in self.order_items.all())
-        shipping_cost = self.shipping.cost if self.shipping else Decimal('0.00')
-        self.total_amount = items_total + shipping_cost
+        items_total = sum(float(item.get_subtotal()) for item in self.order_items.all())
+        shipping_cost = float(self.shipping.cost) if self.shipping else 0.0
+        self.total = items_total + shipping_cost
         self.save()
-        return self.total_amount
+        return self.total
 
     def confirm(self):
         """Confirm the order."""

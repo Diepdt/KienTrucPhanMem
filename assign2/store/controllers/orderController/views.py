@@ -221,7 +221,7 @@ def checkout_process(request):
     
     # Calculate total
     subtotal = cart.get_total_price()
-    total = subtotal + shipping.cost
+    total = float(subtotal) + float(shipping.cost)
     
     # Create payment record
     payment = Payment.objects.create(
@@ -235,7 +235,7 @@ def checkout_process(request):
         customer_id=customer_id,
         shipping=shipping,
         payment=payment,
-        total_amount=total,
+        total=total,  # Changed from total_amount to total
         status='pending'
     )
     
