@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Bookstore{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-person"></i> My Profile</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Profile Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" name="name" id="name" class="form-control" value="{{ customer.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" id="email" class="form-control" value="{{ customer.email }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Links</h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'customer:order_history' %}" class="btn btn-outline-primary mb-2 w-100">
+                    <i class="bi bi-bag"></i> View Order History
+                </a>
+                <a href="{% url 'cart:detail' %}" class="btn btn-outline-primary mb-2 w-100">
+                    <i class="bi bi-cart"></i> View Cart
+                </a>
+                <a href="{% url 'customer:logout' %}" class="btn btn-outline-danger w-100">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Order #{{ order.id }} - Bookstore{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'customer:order_history' %}">Order History</a></li>
+        <li class="breadcrumb-item active">Order #{{ order.id }}</li>
+    </ol>
+</nav>
+
+<h1 class="mb-4">Order #{{ order.id }}</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Order Items</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Book</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.order_items.all %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'book:detail' item.book.id %}">{{ item.book.title }}</a>
+                                </td>
+                                <td>{{ item.quantity }}</td>
+                                <td>${{ item.price }}</td>
+                                <td>${{ item.get_subtotal }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Shipping</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if order.shipping %}
+                            <p class="mb-1"><strong>Method:</strong> {{ order.shipping.get_method_display }}</p>
+                            <p class="mb-1"><strong>Address:</strong> {{ order.shipping.get_full_address }}</p>
+                            <p class="mb-0"><strong>Cost:</strong> ${{ order.shipping.cost }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Payment</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if order.payment %}
+                            <p class="mb-1"><strong>Method:</strong> {{ order.payment.get_method_display }}</p>
+                            <p class="mb-1"><strong>Status:</strong> 
+                                <span class="badge bg-success">{{ order.payment.get_status_display }}</span>
+                            </p>
+                            <p class="mb-0"><strong>Transaction:</strong> {{ order.payment.transaction_id }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Order Date:</strong> {{ order.created_at|date:"F d, Y H:i" }}</p>
+                <p>
+                    <strong>Status:</strong>
+                    <span class="badge 
+                        {% if order.status == 'delivered' %}bg-success
+                        {% elif order.status == 'cancelled' %}bg-danger
+                        {% elif order.status == 'shipped' %}bg-info
+                        {% else %}bg-warning text-dark{% endif %}">
+                        {{ order.get_status_display }}
+                    </span>
+                </p>
+                <hr>
+                <h5 class="text-primary">Total: ${{ order.total_amount }}</h5>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

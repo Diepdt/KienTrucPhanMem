@@ -1,0 +1,85 @@
+{% extends 'staff/base_staff.html' %}
+
+{% block title %}Import Books - Staff Portal{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'staff:book_list' %}">Books</a></li>
+        <li class="breadcrumb-item active">Import Books</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-upload"></i> Import Books</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="file" class="form-label">Select File (CSV or JSON)</label>
+                        <input type="file" name="file" id="file" class="form-control" accept=".csv,.json" required>
+                        <div class="form-text">
+                            Upload a CSV or JSON file containing book data.
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Import Books
+                    </button>
+                </form>
+                
+                <hr class="my-4">
+                
+                <h6>File Format Examples:</h6>
+                
+                <div class="accordion" id="formatExamples">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#csvExample">
+                                CSV Format
+                            </button>
+                        </h2>
+                        <div id="csvExample" class="accordion-collapse collapse" data-bs-parent="#formatExamples">
+                            <div class="accordion-body">
+<pre class="bg-light p-3"><code>title,author,price,stock_quantity
+"The Great Gatsby","F. Scott Fitzgerald",12.99,50
+"1984","George Orwell",10.99,30
+"To Kill a Mockingbird","Harper Lee",14.99,25</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#jsonExample">
+                                JSON Format
+                            </button>
+                        </h2>
+                        <div id="jsonExample" class="accordion-collapse collapse" data-bs-parent="#formatExamples">
+                            <div class="accordion-body">
+<pre class="bg-light p-3"><code>[
+  {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "price": 12.99,
+    "stock_quantity": 50
+  },
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "price": 10.99,
+    "stock_quantity": 30
+  }
+]</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
