@@ -1,10 +1,10 @@
 # 📚 Django Bookstore - Assignment 3
 
-## Enterprise E-Commerce Architecture with 52 Domain Models
+## Enterprise E-Commerce Architecture with 57 Domain Models
 
 Hệ thống quản lý cửa hàng sách trực tuyến được xây dựng theo kiến trúc **Domain Package MVC** với Django Framework và MySQL Database.
 
-**📌 Yêu cầu chính:** 52 Models phân tích theo Class Diagram chuẩn
+**📌 Yêu cầu chính:** 57 Models phân tích theo Class Diagram chuẩn (52 core + 5 AI Recommendation)
 
 ---
 
@@ -12,14 +12,15 @@ Hệ thống quản lý cửa hàng sách trực tuyến được xây dựng th
 
 ```
 store/
-├── models/                          # Domain Models Layer (52 Models)
+├── models/                          # Domain Models Layer (57 Models)
 │   ├── base.py                      # Abstract Models (2)
 │   ├── user.py                      # Users & Roles (11)
 │   ├── product.py                   # Products & Catalog (12)
 │   ├── inventory.py                 # Inventory & Supply Chain (7)
 │   ├── order.py                     # Sales & Orders (9)
 │   ├── payment.py                   # Payment & Shipping (5)
-│   └── marketing.py                 # Marketing & Content (6)
+│   ├── marketing.py                 # Marketing & Content (6)
+│   └── recommendation.py            # AI Recommendation System (5)
 │
 ├── controllers/                     # Controllers Layer (Views)
 │   ├── bookController/
@@ -31,21 +32,25 @@ store/
 │   ├── staffController/
 │   │   ├── views.py                 # Staff views
 │   │   └── urls.py                  # Staff URLs
-│   └── orderController/
-│       ├── views.py                 # Order/Cart views
-│       └── urls.py                  # Order URLs
+│   ├── orderController/
+│   │   ├── views.py                 # Order/Cart views
+│   │   └── urls.py                  # Order URLs
+│   └── recommendationController/
+│       ├── views.py                 # AI Recommendation views
+│       └── urls.py                  # Recommendation URLs
 │
 └── templates/                       # Views Layer (Templates)
     ├── base.html                    # Base template
     ├── book/                        # Book templates
     ├── cart/                        # Cart templates
     ├── customer/                    # Customer templates
-    └── staff/                       # Staff templates
+    ├── staff/                       # Staff templates
+    └── recommendation/              # AI Recommendation templates
 ```
 
 ---
 
-## 📊 Domain Models - 52 Classes
+## 📊 Domain Models - 57 Classes
 
 ### 1. Abstract Models (2 classes) - `base.py`
 | Model | Mô tả |
@@ -127,6 +132,38 @@ store/
 | **BlogPost** | title, content, author (FK), status |
 | **SystemConfig** | key, value, description |
 
+### 8. AI Recommendation System (5 classes) - `recommendation.py`
+| Model | Thuộc tính | Quan hệ |
+|-------|------------|---------|
+| **RecommendationEngine** | engine_id (UUID), name, engine_type, model_name, temperature, max_recommendations, is_active | Has many Recommendations (1-N) |
+| **UserBehavior** | behavior_type, search_query, metadata, session_id | Belongs to Customer (N-1), Belongs to Book (N-1) |
+| **Recommendation** | recommendation_id (UUID), user_history (JSON), recommended_list (JSON), ai_prompt, ai_response, status, tokens_used | Belongs to Customer (N-1), Belongs to Engine (N-1), Has many Items (1-N) |
+| **RecommendationItem** | rank, reason, confidence_score, was_clicked, was_purchased | Belongs to Recommendation (N-1), Belongs to Book (N-1) |
+| **RecommendationFeedback** | feedback_type, comment, rating | Belongs to Recommendation (N-1), Belongs to Customer (N-1), Belongs to Book (N-1) |
+
+---
+
+## 🤖 AI Recommendation System (OpenAI Integration)
+
+Hệ thống gợi ý sách thông minh sử dụng **OpenAI GPT API**:
+
+### Workflow
+1. **analyze_behavior()**: Phân tích lịch sử mua hàng, đánh giá, xem sách của người dùng
+2. **generate_recommendation()**: Gọi OpenAI API để tạo gợi ý dựa trên user_history
+
+### Configuration
+```python
+# settings.py
+OPENAI_API_KEY = 'your-openai-api-key'
+```
+
+### API Flow
+```
+Customer → analyze_behavior() → user_history JSON
+user_history → OpenAI GPT → recommended_list JSON
+recommended_list → RecommendationItems → Display to User
+```
+
 ---
 
 ## 🚀 Chức năng hệ thống
@@ -142,6 +179,7 @@ store/
 - ✅ Checkout đặt hàng
 - ✅ Xem lịch sử đơn hàng
 - ✅ Quản lý địa chỉ giao hàng
+- ✅ **AI-Powered Book Recommendations** (OpenAI)
 
 ### 👨‍💼 Staff Features
 - ✅ Đăng nhập Staff
@@ -160,6 +198,7 @@ store/
 - Python 3.11+
 - Django 5.2+
 - MySQL 8.0
+- OpenAI API Key (for recommendations)
 
 ### Cấu hình Database
 

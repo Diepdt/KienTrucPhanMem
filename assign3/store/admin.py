@@ -1,5 +1,5 @@
 """
-Store Admin - Django Admin configuration for all 52 models.
+Store Admin - Django Admin configuration for all 57 models.
 """
 from django.contrib import admin
 from store.models import (
@@ -25,6 +25,10 @@ from store.models import (
     
     # Marketing & Content
     Promotion, Coupon, Notification, Banner, BlogPost, SystemConfig,
+    
+    # Recommendation System
+    RecommendationEngine, UserBehavior, Recommendation,
+    RecommendationItem, RecommendationFeedback,
 )
 
 
@@ -443,3 +447,51 @@ class SystemConfigAdmin(admin.ModelAdmin):
     list_display = ('id', 'key', 'value', 'value_type', 'category', 'is_public')
     list_filter = ('value_type', 'category', 'is_public')
     search_fields = ('key', 'description')
+
+
+# ============================================================
+# Recommendation System Admin
+# ============================================================
+
+@admin.register(RecommendationEngine)
+class RecommendationEngineAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'engine_type', 'model_name', 'is_active', 'max_recommendations')
+    list_filter = ('engine_type', 'is_active')
+    search_fields = ('name',)
+
+
+class RecommendationItemInline(admin.TabularInline):
+    model = RecommendationItem
+    extra = 0
+    readonly_fields = ('rank', 'confidence_score', 'was_clicked', 'was_purchased')
+
+
+@admin.register(Recommendation)
+class RecommendationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'customer', 'engine', 'status', 'tokens_used', 'created_at', 'expires_at')
+    list_filter = ('status', 'engine', 'is_valid')
+    search_fields = ('customer__name', 'customer__email')
+    readonly_fields = ('recommendation_id', 'user_history', 'recommended_list', 'ai_prompt', 'ai_response', 'tokens_used')
+    inlines = [RecommendationItemInline]
+
+
+@admin.register(RecommendationItem)
+class RecommendationItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'recommendation', 'book', 'rank', 'confidence_score', 'was_clicked', 'was_purchased')
+    list_filter = ('was_clicked', 'was_purchased')
+    search_fields = ('book__title',)
+
+
+@admin.register(UserBehavior)
+class UserBehaviorAdmin(admin.ModelAdmin):
+    list_display = ('id', 'customer', 'behavior_type', 'book', 'created_at')
+    list_filter = ('behavior_type',)
+    search_fields = ('customer__name', 'book__title')
+    date_hierarchy = 'created_at'
+
+
+@admin.register(RecommendationFeedback)
+class RecommendationFeedbackAdmin(admin.ModelAdmin):
+    list_display = ('id', 'recommendation', 'customer', 'book', 'feedback_type', 'rating', 'created_at')
+    list_filter = ('feedback_type',)
+    search_fields = ('customer__name', 'book__title')

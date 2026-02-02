@@ -7,4 +7,5 @@ urlpatterns = [
     path('customer/', include('store.controllers.customerController.urls')),
     path('staff/', include('store.controllers.staffController.urls')),
     path('cart/', include('store.controllers.orderController.urls')),
+    path('recommendations/', include('store.controllers.recommendationController.urls')),
 ]

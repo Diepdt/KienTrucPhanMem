@@ -100,7 +100,18 @@ from store.models.marketing import (
 )
 
 # ============================================================
-# Export all 52 models
+# 8. Recommendation System (5 classes) - recommendation.py
+# ============================================================
+from store.models.recommendation import (
+    RecommendationEngine,
+    UserBehavior,
+    Recommendation,
+    RecommendationItem,
+    RecommendationFeedback,
+)
+
+# ============================================================
+# Export all 57 models
 # ============================================================
 __all__ = [
     # Abstract Models (2)
@@ -168,7 +179,14 @@ __all__ = [
     'Banner',
     'BlogPost',
     'SystemConfig',
+    
+    # Recommendation System (5)
+    'RecommendationEngine',
+    'UserBehavior',
+    'Recommendation',
+    'RecommendationItem',
+    'RecommendationFeedback',
 ]
 
-# Model count verification: 2 + 11 + 12 + 7 + 9 + 5 + 6 = 52 Models
+# Model count verification: 2 + 11 + 12 + 7 + 9 + 5 + 6 + 5 = 57 Models
 

@@ -140,3 +140,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# OpenAI API Key for Recommendation System
+# Get your API key from: https://platform.openai.com/api-keys
+import os
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
