@@ -13,70 +13,82 @@
 <div class="row">
     <div class="col-md-8">
         <h1>{{ book.title }}</h1>
-        <p class="lead text-muted">by {{ book.author }}</p>
-        
+        <p class="lead text-muted">by {{ book.get_authors_display }}</p>
+
         <div class="mb-4">
-            <h4 class="text-primary">${{ book.price }}</h4>
+            <h4 class="text-primary">{{ book.price|floatformat:0 }}đ</h4>
+            {% if book.original_price and book.original_price > book.price %}
+            <span class="text-muted text-decoration-line-through">{{ book.original_price|floatformat:0 }}đ</span>
+            <span class="badge bg-danger">-{{ book.get_discount_percentage }}%</span>
+            {% endif %}
+            <br>
             {% if book.stock_quantity > 0 %}
-                <span class="badge bg-success fs-6">In Stock ({{ book.stock_quantity }} available)</span>
+            <span class="badge bg-success fs-6">In Stock ({{ book.stock_quantity }} available)</span>
             {% else %}
-                <span class="badge bg-danger fs-6">Out of Stock</span>
+            <span class="badge bg-danger fs-6">Out of Stock</span>
             {% endif %}
         </div>
-        
+
+        {% if book.description %}
+        <div class="mb-4">
+            <h5>Description</h5>
+            <p>{{ book.description }}</p>
+        </div>
+        {% endif %}
+
         {% if avg_rating %}
-            <div class="mb-4">
-                <strong>Average Rating:</strong>
-                {% for i in "12345" %}
-                    {% if forloop.counter <= avg_rating %}
-                        <i class="bi bi-star-fill text-warning"></i>
-                    {% else %}
-                        <i class="bi bi-star text-muted"></i>
-                    {% endif %}
+        <div class="mb-4">
+            <strong>Average Rating:</strong>
+            {% for i in "12345" %}
+            {% if forloop.counter <= avg_rating %} <i class="bi bi-star-fill text-warning"></i>
+                {% else %}
+                <i class="bi bi-star text-muted"></i>
+                {% endif %}
                 {% endfor %}
                 <span class="text-muted">({{ avg_rating|floatformat:1 }}/5)</span>
-            </div>
+        </div>
         {% endif %}
-        
+
         {% if book.stock_quantity > 0 %}
-            <form action="{% url 'cart:add' book.id %}" method="post" class="mb-4">
-                {% csrf_token %}
-                <div class="row g-3 align-items-center">
-                    <div class="col-auto">
-                        <label for="quantity" class="col-form-label">Quantity:</label>
-                    </div>
-                    <div class="col-auto">
-                        <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" max="{{ book.stock_quantity }}" style="width: 80px;">
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-cart-plus"></i> Add to Cart
-                        </button>
-                    </div>
+        <form action="{% url 'cart:add' book.id %}" method="post" class="mb-4">
+            {% csrf_token %}
+            <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label for="quantity" class="col-form-label">Quantity:</label>
                 </div>
-            </form>
+                <div class="col-auto">
+                    <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1"
+                        max="{{ book.stock_quantity }}" style="width: 80px;">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-cart-plus"></i> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </form>
         {% endif %}
     </div>
 </div>
 
 {% if recommended_books %}
-    <hr class="my-5">
-    <h3>Customers who bought this also bought...</h3>
-    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4 mt-2">
-        {% for rec_book in recommended_books %}
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h6 class="card-title">{{ rec_book.title }}</h6>
-                        <p class="card-text small text-muted">{{ rec_book.author }}</p>
-                        <p class="card-text"><strong>${{ rec_book.price }}</strong></p>
-                    </div>
-                    <div class="card-footer">
-                        <a href="{% url 'book:detail' rec_book.id %}" class="btn btn-outline-primary btn-sm">View</a>
-                    </div>
-                </div>
+<hr class="my-5">
+<h3>Customers who bought this also bought...</h3>
+<div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4 mt-2">
+    {% for rec_book in recommended_books %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">{{ rec_book.title }}</h6>
+                <p class="card-text small text-muted">{{ rec_book.get_authors_display }}</p>
+                <p class="card-text"><strong>{{ rec_book.price|floatformat:0 }}đ</strong></p>
             </div>
-        {% endfor %}
+            <div class="card-footer">
+                <a href="{% url 'book:detail' rec_book.id %}" class="btn btn-outline-primary btn-sm">View</a>
+            </div>
+        </div>
     </div>
+    {% endfor %}
+</div>
 {% endif %}
 {% endblock %}

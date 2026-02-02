@@ -2,31 +2,38 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.db.models import Q, Count, Avg, Sum, F
 from django.core.paginator import Paginator
-from store.models import Book, CartItem, Rating, OrderItem
+from store.models import Book, CartItem, Rating, OrderItem, Category
 
 
 def book_list(request):
     """
     Display list of all books with search and filter capabilities.
     """
-    books = Book.objects.all()
+    books = Book.objects.filter(is_active=True).prefetch_related('authors').select_related('category')
+    categories = Category.objects.filter(is_active=True)
     
     # Search functionality
     search_query = request.GET.get('search', '')
     if search_query:
         books = books.filter(
             Q(title__icontains=search_query) |
-            Q(author__icontains=search_query)
-        )
+            Q(authors__name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        ).distinct()
+    
+    # Filter by category
+    category_filter = request.GET.get('category', '')
+    if category_filter:
+        books = books.filter(category__slug=category_filter)
     
     # Filter by author
     author_filter = request.GET.get('author', '')
     if author_filter:
-        books = books.filter(author__icontains=author_filter)
+        books = books.filter(authors__name__icontains=author_filter).distinct()
     
     # Sort functionality
     sort_by = request.GET.get('sort', 'title')
-    if sort_by in ['title', '-title', 'price', '-price', 'author', '-author']:
+    if sort_by in ['title', '-title', 'price', '-price', '-created_at']:
         books = books.order_by(sort_by)
     
     # Pagination
@@ -36,7 +43,9 @@ def book_list(request):
     
     context = {
         'books': page_obj,
+        'categories': categories,
         'search_query': search_query,
+        'category_filter': category_filter,
         'author_filter': author_filter,
         'sort_by': sort_by,
     }
@@ -70,13 +79,13 @@ def book_search(request):
     query = request.GET.get('q', '')
     books = Book.objects.filter(
         Q(title__icontains=query) |
-        Q(author__icontains=query)
-    )[:10]  # Limit results
+        Q(authors__name__icontains=query)
+    ).prefetch_related('authors').distinct()[:10]  # Limit results
     
     results = [{
         'id': book.id,
         'title': book.title,
-        'author': book.author,
+        'author': book.get_authors_display(),
         'price': str(book.price),
         'in_stock': book.is_in_stock(),
     } for book in books]

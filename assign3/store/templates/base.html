@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
@@ -29,27 +31,32 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'cart:detail' %}">
                             <i class="bi bi-cart"></i> Cart
+                            {% if cart_count > 0 %}
+                            <span class="badge bg-danger" id="cart-count">{{ cart_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     {% if request.session.customer_id %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person"></i> {{ request.session.customer_name }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'customer:profile' %}">Profile</a></li>
-                                <li><a class="dropdown-item" href="{% url 'customer:order_history' %}">My Orders</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'customer:logout' %}">Logout</a></li>
-                            </ul>
-                        </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person"></i> {{ request.session.customer_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'customer:profile' %}">Profile</a></li>
+                            <li><a class="dropdown-item" href="{% url 'customer:order_history' %}">My Orders</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'customer:logout' %}">Logout</a></li>
+                        </ul>
+                    </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'customer:login' %}">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'customer:register' %}">Register</a>
-                        </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'customer:login' %}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'customer:register' %}">Register</a>
+                    </li>
                     {% endif %}
                 </ul>
             </div>
@@ -58,14 +65,14 @@
 
     <main class="container my-4">
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
         {% endif %}
-        
+
         {% block content %}{% endblock %}
     </main>
 
@@ -76,6 +83,60 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update cart count on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            // Handle add to cart forms with AJAX
+            document.querySelectorAll('.add-to-cart-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update cart count
+                                const cartCount = document.getElementById('cart-count');
+                                if (cartCount && data.cart_total) {
+                                    cartCount.textContent = data.cart_total;
+                                }
+                                // Show success message
+                                showToast(data.message, 'success');
+                            } else if (data.error) {
+                                showToast(data.error, 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            // Fallback to normal form submit
+                            form.submit();
+                        });
+                });
+            });
+        });
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

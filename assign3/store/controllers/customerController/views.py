@@ -34,12 +34,13 @@ def register(request):
                 'email': email,
             })
         
-        # Create customer (password will be hashed in model's save method)
+        # Create customer with hashed password
         customer = Customer.objects.create(
             name=name,
             email=email,
-            password=password
         )
+        customer.set_password(password)
+        customer.save()
         
         messages.success(request, 'Registration successful! Please login.')
         return redirect('customer:login')

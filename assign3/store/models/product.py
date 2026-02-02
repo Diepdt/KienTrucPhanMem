@@ -279,6 +279,17 @@ class Book(TimeStampedModel):
             return int(((self.original_price - self.price) / self.original_price) * 100)
         return 0
 
+    def get_authors_display(self):
+        """Get comma-separated list of author names."""
+        authors = self.authors.all()
+        if authors:
+            return ', '.join([a.name for a in authors])
+        return 'Unknown Author'
+
+    def get_total_price(self):
+        """Alias for price to maintain compatibility."""
+        return self.price
+
 
 class BookDetail(TimeStampedModel):
     """

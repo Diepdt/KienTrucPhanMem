@@ -48,7 +48,7 @@ def cart_detail(request):
     context = {
         'cart': cart,
         'items': cart.items.select_related('book').all(),
-        'total_price': cart.get_total_price(),
+        'total_price': cart.get_subtotal(),
         'total_items': cart.get_total_items(),
     }
     return render(request, 'cart/cart_detail.html', context)
@@ -208,12 +208,41 @@ def checkout_process(request):
         messages.error(request, 'Your cart is empty')
         return redirect('cart:detail')
     
+    customer = Customer.objects.get(id=customer_id)
+    
     # Get shipping info
     shipping_method_id = request.POST.get('shipping_method')
     shipping_address_id = request.POST.get('shipping_address')
     
     # Get payment info
     payment_method_id = request.POST.get('payment_method')
+    
+    # Handle new address if no existing address selected
+    shipping_address = None
+    if shipping_address_id:
+        try:
+            shipping_address = Address.objects.get(id=shipping_address_id)
+        except Address.DoesNotExist:
+            pass
+    else:
+        # Create new address from form
+        full_name = request.POST.get('full_name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        new_address = request.POST.get('new_address', '').strip()
+        city = request.POST.get('city', '').strip()
+        postal_code = request.POST.get('postal_code', '').strip()
+        
+        if full_name and phone and new_address and city:
+            shipping_address = Address.objects.create(
+                customer=customer,
+                full_name=full_name,
+                phone=phone,
+                street_address=new_address,
+                city=city,
+                postal_code=postal_code,
+                country='Vietnam',
+                is_default=True
+            )
     
     # Validate stock availability
     for item in cart.items.all():
@@ -222,11 +251,14 @@ def checkout_process(request):
             return redirect('cart:checkout')
     
     # Get shipping method and calculate cost
-    shipping_method = ShippingMethod.objects.get(id=shipping_method_id) if shipping_method_id else None
-    shipping_cost = shipping_method.base_cost if shipping_method else Decimal('0')
-    
-    # Get address
-    shipping_address = Address.objects.get(id=shipping_address_id) if shipping_address_id else None
+    shipping_method = None
+    shipping_cost = Decimal('30000')  # Default shipping cost
+    if shipping_method_id:
+        try:
+            shipping_method = ShippingMethod.objects.get(id=shipping_method_id)
+            shipping_cost = shipping_method.base_cost
+        except ShippingMethod.DoesNotExist:
+            pass
     
     # Calculate total
     subtotal = cart.get_subtotal()
@@ -237,7 +269,6 @@ def checkout_process(request):
     order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
     
     # Create order
-    customer = Customer.objects.get(id=customer_id)
     order = Order.objects.create(
         order_number=order_number,
         customer=customer,
@@ -260,7 +291,13 @@ def checkout_process(request):
         cart_item.book.reduce_stock(cart_item.quantity)
     
     # Create payment record
-    payment_method = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
+    payment_method = None
+    if payment_method_id:
+        try:
+            payment_method = PaymentMethod.objects.get(id=payment_method_id)
+        except PaymentMethod.DoesNotExist:
+            pass
+    
     payment = Payment.objects.create(
         order=order,
         payment_method=payment_method,
@@ -270,7 +307,6 @@ def checkout_process(request):
     
     # Create shipment record
     if shipping_method:
-        import uuid
         tracking_number = f"TRK-{uuid.uuid4().hex[:10].upper()}"
         Shipment.objects.create(
             order=order,
