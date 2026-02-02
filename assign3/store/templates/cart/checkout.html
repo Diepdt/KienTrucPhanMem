@@ -160,27 +160,26 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const shippingInputs = document.querySelectorAll('.shipping-method');
-        const subtotal = {{ subtotal|default: 0
-    }};
+        const subtotal = {{ subtotal|default:0 }};
 
-    function updateTotal() {
-        const checkedMethod = document.querySelector('.shipping-method:checked');
-        let shippingCost = 30000;
+        function updateTotal() {
+            const checkedMethod = document.querySelector('.shipping-method:checked');
+            let shippingCost = 30000;
 
-        if (checkedMethod && checkedMethod.dataset.cost) {
-            shippingCost = parseFloat(checkedMethod.dataset.cost);
+            if (checkedMethod && checkedMethod.dataset.cost) {
+                shippingCost = parseFloat(checkedMethod.dataset.cost);
+            }
+
+            document.getElementById('shipping-cost').textContent = shippingCost.toLocaleString('vi-VN') + 'đ';
+            const total = subtotal + shippingCost;
+            document.getElementById('order-total').textContent = total.toLocaleString('vi-VN') + 'đ';
         }
 
-        document.getElementById('shipping-cost').textContent = shippingCost.toLocaleString('vi-VN') + 'đ';
-        const total = subtotal + shippingCost;
-        document.getElementById('order-total').textContent = total.toLocaleString('vi-VN') + 'đ';
-    }
+        shippingInputs.forEach(input => {
+            input.addEventListener('change', updateTotal);
+        });
 
-    shippingInputs.forEach(input => {
-        input.addEventListener('change', updateTotal);
+        updateTotal();
     });
-
-    updateTotal();
-});
 </script>
 {% endblock %}
