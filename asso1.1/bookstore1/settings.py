@@ -76,16 +76,25 @@ WSGI_APPLICATION = 'bookstore1.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# SQLite for development (easy setup, no MySQL needed)
 DATABASES = {
     'default': {
-	'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bookstore1',
-        'USER': 'root',      
-        'PASSWORD': '123456',       
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# MySQL configuration (uncomment if you have MySQL installed)
+# DATABASES = {
+#     'default': {
+# 	    'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'bookstore1',
+#         'USER': 'root',      
+#         'PASSWORD': '123456',       
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#     }
+# }
 
 
 # Password validation

@@ -1,0 +1,7 @@
+# Requirements chung cho Microservices Bookstore
+# Cài đặt: pip install -r requirements.txt
+
+Django>=4.2
+mysqlclient>=2.2.0
+requests>=2.31.0
+django-cors-headers>=4.3.0

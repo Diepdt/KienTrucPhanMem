@@ -1,0 +1,318 @@
+services:
+
+  # ============================================================
+  # MySQL - Một instance, nhiều database (mỗi service dùng 1 DB)
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: bookstore-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "33306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ============================================================
+  # staff-service (port 8001)
+  # ============================================================
+  staff-service:
+    build: ./staff-service
+    container_name: staff-service
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      DB_NAME: db_staff
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "staff-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # manager-service (port 8002)
+  # ============================================================
+  manager-service:
+    build: ./manager-service
+    container_name: manager-service
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      DB_NAME: db_manager
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "manager-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      staff-service:
+        condition: service_started
+
+  # ============================================================
+  # customer-service (port 8003)
+  # ============================================================
+  customer-service:
+    build: ./customer-service
+    container_name: customer-service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      DB_NAME: db_customer
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "customer-secret-key-production"
+      CART_SERVICE_URL: "http://cart-service:8006"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # catalog-service (port 8004)
+  # ============================================================
+  catalog-service:
+    build: ./catalog-service
+    container_name: catalog-service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      DB_NAME: db_catalog
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "catalog-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # book-service (port 8005)
+  # ============================================================
+  book-service:
+    build: ./book-service
+    container_name: book-service
+    restart: always
+    ports:
+      - "8005:8005"
+    environment:
+      DB_NAME: db_book
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "book-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+      CATALOG_SERVICE_URL: "http://catalog-service:8004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      staff-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+
+  # ============================================================
+  # cart-service (port 8006)
+  # ============================================================
+  cart-service:
+    build: ./cart-service
+    container_name: cart-service
+    restart: always
+    ports:
+      - "8006:8006"
+    environment:
+      DB_NAME: db_cart
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "cart-secret-key-production"
+      BOOK_SERVICE_URL: "http://book-service:8005"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      book-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+
+  # ============================================================
+  # order-service (port 8007)
+  # ============================================================
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    restart: always
+    ports:
+      - "8007:8007"
+    environment:
+      DB_NAME: db_order
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "order-secret-key-production"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      CART_SERVICE_URL: "http://cart-service:8006"
+      BOOK_SERVICE_URL: "http://book-service:8005"
+      PAY_SERVICE_URL: "http://pay-service:8009"
+      SHIP_SERVICE_URL: "http://ship-service:8008"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+      book-service:
+        condition: service_started
+
+  # ============================================================
+  # ship-service (port 8008)
+  # ============================================================
+  ship-service:
+    build: ./ship-service
+    container_name: ship-service
+    restart: always
+    ports:
+      - "8008:8008"
+    environment:
+      DB_NAME: db_ship
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "ship-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # pay-service (port 8009)
+  # ============================================================
+  pay-service:
+    build: ./pay-service
+    container_name: pay-service
+    restart: always
+    ports:
+      - "8009:8009"
+    environment:
+      DB_NAME: db_pay
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "pay-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # comment-rate-service (port 8010)
+  # ============================================================
+  comment-rate-service:
+    build: ./comment-rate-service
+    container_name: comment-rate-service
+    restart: always
+    ports:
+      - "8010:8010"
+    environment:
+      DB_NAME: db_comment
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "comment-secret-key-production"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+
+  # ============================================================
+  # recommender-ai-service (port 8011)
+  # ============================================================
+  recommender-ai-service:
+    build: ./recommender-ai-service
+    container_name: recommender-ai-service
+    restart: always
+    ports:
+      - "8011:8011"
+    environment:
+      DB_NAME: db_recommender
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "recommender-secret-key-production"
+      COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
+      ORDER_SERVICE_URL: "http://order-service:8007"
+      BOOK_SERVICE_URL: "http://book-service:8005"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      comment-rate-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+
+  # ============================================================
+  # api-gateway (port 8000) - Điểm vào duy nhất cho client
+  # ============================================================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: "gateway-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      CATALOG_SERVICE_URL: "http://catalog-service:8004"
+      BOOK_SERVICE_URL: "http://book-service:8005"
+      CART_SERVICE_URL: "http://cart-service:8006"
+      ORDER_SERVICE_URL: "http://order-service:8007"
+      SHIP_SERVICE_URL: "http://ship-service:8008"
+      PAY_SERVICE_URL: "http://pay-service:8009"
+      COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
+      RECOMMENDER_SERVICE_URL: "http://recommender-ai-service:8011"
+    depends_on:
+      - staff-service
+      - manager-service
+      - customer-service
+      - catalog-service
+      - book-service
+      - cart-service
+      - order-service
+      - ship-service
+      - pay-service
+      - comment-rate-service
+      - recommender-ai-service
+
+volumes:
+  mysql_data:

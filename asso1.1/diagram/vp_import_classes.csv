@@ -1,0 +1,25 @@
+Class Name,Stereotype,Package,Attribute 1,Attribute 2,Attribute 3,Attribute 4,Attribute 5,Attribute 6,Attribute 7,Attribute 8
+Author,,Book Domain,+ID: int,+name: String,+biography: String,+birth_date: date,+email: String,+website: String,+created_at: datetime,
+Publisher,,Book Domain,+ID: int,+name: String,+address: String,+city: String,+country: String,+website: String,+email: String,+phone: String
+Category,,Book Domain,+ID: int,+type: String,,,,,,
+Book,,Book Domain,+ID: int,+title: String,+author: String,+isbn: String,+price: float,+stock_quantity: int,+pages: int,+publication_date: date
+Customer,,Customer Domain,+ID: int,+name: String,+email: String,+password: String,,,,
+Address,,Customer Domain,+ID: int,+num: String,+street: String,+city: String,,,,
+Rating,,Customer Domain,+ID: int,+score: int,+comment: String,+created_at: datetime,,,,
+Review,,Customer Domain,+ID: int,+title: String,+content: String,+rating: int,+is_verified_purchase: bool,+helpful_votes: int,+is_approved: bool,+created_at: datetime
+Wishlist,,Customer Domain,+ID: int,+name: String,+is_public: bool,+created_at: datetime,,,,
+WishlistItem,,Customer Domain,+ID: int,+priority: int,+notes: String,+added_at: datetime,,,,
+Staff,,Staff Domain,+ID: int,+name: String,+email: String,+password: String,+role: String,,,
+Cart,,Order Domain,+ID: int,+session_key: String,+created_at: datetime,+updated_at: datetime,,,,
+CartItem,,Order Domain,+ID: int,+quantity: int,+added_at: datetime,,,,,
+Order,,Order Domain,+ID: int,+status: String,+total: float,+notes: String,+created_at: datetime,+updated_at: datetime,,
+OrderItem,,Order Domain,+ID: int,+quantity: int,+price: float,,,,,
+Shipping,,Order Domain,+ID: int,+method: String,+address: String,+city: String,+country: String,+cost: float,+created_at: datetime,
+Payment,,Order Domain,+ID: int,+method: String,+amount: float,+status: String,+transaction_id: String,+created_at: datetime,,
+OrderHistory,,Order Domain,+ID: int,+old_status: String,+new_status: String,+notes: String,+created_at: datetime,,,
+Refund,,Order Domain,+ID: int,+amount: float,+reason: String,+reason_details: String,+status: String,+processed_at: datetime,+created_at: datetime,
+Promotion,,Promotion Domain,+ID: int,+name: String,+discount_type: String,+discount_percent: float,+start_date: datetime,+end_date: datetime,+is_active: bool,+max_uses: int
+Coupon,,Promotion Domain,+ID: int,+code: String,+discount_type: String,+discount_percent: float,+valid_from: datetime,+valid_to: datetime,+max_uses: int,+is_active: bool
+Inventory,,Inventory Domain,+ID: int,+quantity: int,+reorder_level: int,+reorder_quantity: int,+location: String,+last_restocked: datetime,,
+InventoryLog,,Inventory Domain,+ID: int,+action: String,+quantity: int,+notes: String,+created_at: datetime,,,
+Notification,,Notification Domain,+ID: int,+recipient_type: String,+title: String,+message: String,+notification_type: String,+is_read: bool,+created_at: datetime,

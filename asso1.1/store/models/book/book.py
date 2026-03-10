@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Book(models.Model):
@@ -48,7 +49,7 @@ class Book(models.Model):
     stock_quantity = models.IntegerField(default=0)
     pages = models.PositiveIntegerField(blank=True, null=True)
     publication_date = models.DateField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
