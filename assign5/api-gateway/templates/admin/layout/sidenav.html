@@ -7,7 +7,7 @@
                     <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
                     Dashboard
                 </a>
-                <a class="nav-link" href="/admin-panel/users/">
+                <a class="nav-link" href="/admin-panel/users/" id="nav-admin-users">
                     <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
                     User
                 </a>
@@ -15,9 +15,17 @@
                     <div class="sb-nav-link-icon"><i class="fas fa-box-open"></i></div>
                     Product
                 </a>
-                <a class="nav-link" href="/admin-panel/orders/">
+                <a class="nav-link" href="/admin-panel/categories/">
+                    <div class="sb-nav-link-icon"><i class="fas fa-tags"></i></div>
+                    Category
+                </a>
+                <a class="nav-link" href="/admin-panel/orders/" id="nav-admin-orders">
                     <div class="sb-nav-link-icon"><i class="fas fa-receipt"></i></div>
                     Order
+                </a>
+                <a class="nav-link" href="/admin-panel/reviews/" id="nav-admin-reviews">
+                    <div class="sb-nav-link-icon"><i class="fas fa-star"></i></div>
+                    Review
                 </a>
             </div>
         </div>
@@ -27,3 +35,17 @@
         </div>
     </nav>
 </div>
+
+<script>
+    (function applyRoleMenuVisibility() {
+        const role = localStorage.getItem('admin_type') || '';
+        if (role === 'staff') {
+            const usersLink = document.getElementById('nav-admin-users');
+            const ordersLink = document.getElementById('nav-admin-orders');
+            const reviewsLink = document.getElementById('nav-admin-reviews');
+            if (usersLink) usersLink.classList.add('d-none');
+            if (ordersLink) ordersLink.classList.add('d-none');
+            if (reviewsLink) reviewsLink.classList.add('d-none');
+        }
+    })();
+</script>

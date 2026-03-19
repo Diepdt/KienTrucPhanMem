@@ -60,30 +60,26 @@ class AgentChatView(APIView):
         try:
             final_reply = self._run_agent_loop(user_message, session_id, user_id)
         except RuntimeError as exc:
-            # Lỗi cấu hình (thiếu API key, v.v.)
-            logger.error("AgentChatView config error: %s", exc)
-            return Response(
-                {"error": str(exc)},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            logger.error("AgentChatView config/runtime error: %s", exc)
+            fallback_reply = self._fallback_reply(user_message, user_id)
+            save_chat_message(session_id, "user", user_message)
+            save_chat_message(session_id, "assistant", fallback_reply)
+            return Response({
+                "reply": fallback_reply,
+                "session_id": session_id,
+                "fallback": True,
+                "note": str(exc),
+            })
         except Exception as exc:
             logger.error("AgentChatView unexpected error: %s", exc, exc_info=True)
-            exc_str = str(exc)
-            if "429" in exc_str:
-                user_msg = (
-                    "BookBot hiện đang quá tải hoặc API key đã hết hạn. "
-                    "Vui lòng thử lại sau ít phút."
-                )
-            elif "401" in exc_str or "Unauthorized" in exc_str:
-                user_msg = "API key OpenAI không hợp lệ. Vui lòng kiểm tra cấu hình."
-            elif "Connection" in exc_str or "Timeout" in exc_str:
-                user_msg = "Không kết nối được tới dịch vụ AI. Vui lòng thử lại sau."
-            else:
-                user_msg = "Xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau."
-            return Response(
-                {"error": user_msg},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            fallback_reply = self._fallback_reply(user_message, user_id)
+            save_chat_message(session_id, "user", user_message)
+            save_chat_message(session_id, "assistant", fallback_reply)
+            return Response({
+                "reply": fallback_reply,
+                "session_id": session_id,
+                "fallback": True,
+            })
 
         return Response({"reply": final_reply, "session_id": session_id})
 
@@ -169,6 +165,55 @@ class AgentChatView(APIView):
         save_chat_message(session_id, "assistant", final_reply)
 
         return final_reply
+
+    def _fallback_reply(self, user_message: str, user_id) -> str:
+        """
+        Fallback khi LLM provider lỗi: xử lý các thao tác cơ bản bằng tool nội bộ.
+        """
+        lowered = user_message.lower()
+
+        # Intent: thêm vào giỏ theo book_id
+        if ("thêm" in lowered and "giỏ" in lowered) or ("add" in lowered and "cart" in lowered):
+            import re
+            match = re.search(r"(?:id\s*)?(\d+)", lowered)
+            if match and user_id is not None:
+                book_id = int(match.group(1))
+                tool_fn = TOOL_FUNCTION_MAP.get("add_book_to_cart")
+                if tool_fn:
+                    try:
+                        result = tool_fn(user_id=int(user_id), book_id=book_id, quantity=1)
+                        payload = json.loads(result)
+                        if payload.get("success"):
+                            return f"Đã thêm sách ID {book_id} vào giỏ hàng của bạn thành công."
+                        return f"Không thể thêm vào giỏ hàng: {payload.get('message') or payload.get('error') or 'Lỗi không xác định.'}"
+                    except Exception:
+                        return "Mình chưa thể thêm vào giỏ lúc này, bạn thử lại sau nhé."
+            return "Bạn hãy gửi rõ ID sách cần thêm vào giỏ, ví dụ: 'thêm sách id 12 vào giỏ'."
+
+        # Intent mặc định: tìm sách
+        tool_fn = TOOL_FUNCTION_MAP.get("search_books")
+        if tool_fn:
+            try:
+                result = tool_fn(query=user_message, category="")
+                payload = json.loads(result)
+                if not payload.get("found"):
+                    return payload.get("message") or "Mình chưa tìm thấy sách phù hợp."
+
+                books = payload.get("books", [])[:5]
+                if not books:
+                    return "Mình chưa tìm thấy sách phù hợp."
+
+                lines = ["Mình tìm được một số sách phù hợp:"]
+                for book in books:
+                    lines.append(
+                        f"- ID {book.get('id')}: {book.get('title')} ({book.get('author')}) - {book.get('price')} VND"
+                    )
+                lines.append("Bạn có thể nhắn: 'thêm sách id <ID> vào giỏ' để mình hỗ trợ tiếp.")
+                return "\n".join(lines)
+            except Exception:
+                return "Mình chưa xử lý được yêu cầu lúc này, bạn vui lòng thử lại sau."
+
+        return "Mình tạm thời không khả dụng. Bạn vui lòng thử lại sau nhé."
 
 
 class AgentHistoryView(APIView):

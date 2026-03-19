@@ -42,6 +42,7 @@ DATABASES = {
 
 # URL các service khác
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://cart-service:8006')
+MANAGER_SERVICE_URL = os.environ.get('MANAGER_SERVICE_URL', 'http://manager-service:8002')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],

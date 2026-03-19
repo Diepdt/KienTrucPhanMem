@@ -12,7 +12,7 @@
                 <i class="fas fa-user fa-fw"></i>
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" href="/">Về trang chủ</a></li>
+                <li><a class="dropdown-item" href="/admin-panel/profile/">Thông tin cá nhân</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><button class="dropdown-item" type="button" onclick="adminLogout()">Đăng xuất</button></li>
             </ul>
@@ -34,12 +34,38 @@
             window.location.href = '/user/login/';
             return;
         }
+        if (!['manager', 'staff'].includes(type)) {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
+            localStorage.removeItem('admin_type');
+            window.location.href = '/user/login/';
+            return;
+        }
         const name = info.name || info.email || 'Admin';
         const typeLabel = type ? ` (${type})` : '';
         const welcome = document.getElementById('admin-welcome');
         if (welcome) {
             welcome.textContent = `Welcome, ${name}${typeLabel}`;
         }
+
+        window.adminRole = type;
+    }
+
+    function adminIsManager() {
+        return localStorage.getItem('admin_type') === 'manager';
+    }
+
+    function adminCanManageUsersOrders() {
+        return adminIsManager();
+    }
+
+    function adminRequireManagerPage() {
+        if (!adminIsManager()) {
+            alert('Tài khoản staff không có quyền truy cập chức năng này.');
+            window.location.href = '/admin-panel/';
+            return false;
+        }
+        return true;
     }
 
     async function adminLogout() {

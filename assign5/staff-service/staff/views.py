@@ -23,12 +23,12 @@ class StaffViewSet(viewsets.ModelViewSet):
     queryset = Staff.objects.all()
 
     def get_serializer_class(self):
-        if self.action in ('create', 'update', 'partial_update'):
+        if self.action == 'create':
             return StaffCreateSerializer
         return StaffSerializer
 
     def list(self, request):
-        staffs = Staff.objects.filter(is_active=True)
+        staffs = Staff.objects.all()
         return Response(StaffSerializer(staffs, many=True).data)
 
     def create(self, request):
@@ -48,6 +48,9 @@ class StaffViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
 
     def destroy(self, request, pk=None):
         try:
@@ -69,11 +72,13 @@ class StaffLoginView(APIView):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
         try:
-            staff = Staff.objects.get(email=email, is_active=True)
+            staff = Staff.objects.get(email=email)
         except Staff.DoesNotExist:
             return Response({'error': 'Invalid credentials'}, status=401)
         if not staff.check_password(password):
             return Response({'error': 'Invalid credentials'}, status=401)
+        if not staff.is_active:
+            return Response({'error': 'Tài khoản hiện đang bị cấm'}, status=401)
         token, _ = StaffToken.objects.get_or_create(
             staff=staff,
             defaults={'key': StaffToken.generate_key()}

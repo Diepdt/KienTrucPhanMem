@@ -19,8 +19,8 @@
                     <div class="row col-6 mx-auto">
                         <form onsubmit="event.preventDefault();createProduct();">
                             <div class="row"><div class="mb-3 col-6"><label class="form-label">Title:</label><input id="p-title" type="text" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Author:</label><input id="p-author" type="text" class="form-control" required></div></div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">ISBN:</label><input id="p-isbn" type="text" class="form-control"></div><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div></div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Category ID:</label><input id="p-category" type="number" class="form-control"></div></div>
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div></div>
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div></div>
                             <div class="mb-3"><label class="form-label">Cover URL:</label><input id="p-cover" type="url" class="form-control"></div>
                             <div class="mb-3"><label class="form-label">Description:</label><textarea id="p-desc" class="form-control" rows="3"></textarea></div>
                             <div id="product-create-error" class="alert alert-danger d-none py-2 small"></div>
@@ -34,6 +34,36 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function flattenCategories(categories, prefix = '') {
+            const result = [];
+            for (const category of categories || []) {
+                const itemName = prefix ? `${prefix} › ${category.name}` : category.name;
+                result.push({ id: category.id, name: itemName });
+                const children = Array.isArray(category.subcategories) ? category.subcategories : [];
+                if (children.length) {
+                    result.push(...flattenCategories(children, itemName));
+                }
+            }
+            return result;
+        }
+
+        async function loadCategoryOptions() {
+            const select = document.getElementById('p-category');
+            try {
+                const res = await fetch('/api/categories/');
+                const data = await res.json();
+                if (!res.ok || !Array.isArray(data)) {
+                    throw new Error('Không tải được category');
+                }
+
+                const flat = flattenCategories(data);
+                const options = flat.map(item => `<option value="${item.id}">${item.name}</option>`).join('');
+                select.innerHTML = `<option value="">Chọn category</option>${options}`;
+            } catch (error) {
+                select.innerHTML = '<option value="">Không tải được category</option>';
+            }
+        }
+
         function showCreateError(message) {
             const el = document.getElementById('product-create-error');
             el.textContent = message;
@@ -50,7 +80,6 @@
             const payload = {
                 title: document.getElementById('p-title').value.trim(),
                 author: document.getElementById('p-author').value.trim(),
-                isbn: document.getElementById('p-isbn').value.trim() || null,
                 price: document.getElementById('p-price').value,
                 stock: Number(document.getElementById('p-stock').value || 0),
                 category_id: document.getElementById('p-category').value ? Number(document.getElementById('p-category').value) : null,
@@ -76,6 +105,8 @@
 
             window.location.href = `/admin-panel/products/detail/?id=${data.id}`;
         }
+
+        loadCategoryOptions();
     </script>
 </body>
 </html>

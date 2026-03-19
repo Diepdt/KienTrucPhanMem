@@ -28,6 +28,36 @@ def verify_staff_token(auth_header):
     return False, None
 
 
+def verify_manager_token(auth_header):
+    """Xác thực manager qua manager-service."""
+    try:
+        manager_url = django_settings.MANAGER_SERVICE_URL
+        resp = http_requests.get(
+            f"{manager_url}/api/manager/verify-token/",
+            headers={'Authorization': auth_header},
+            timeout=5
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('valid', False), data.get('manager')
+    except Exception as e:
+        logger.error(f"Error verifying manager token: {e}")
+    return False, None
+
+
+def verify_admin_token(auth_header):
+    """Xác thực token của staff hoặc manager."""
+    staff_valid, staff = verify_staff_token(auth_header)
+    if staff_valid:
+        return True, {'id': staff.get('id'), 'type': 'staff'}
+
+    manager_valid, manager = verify_manager_token(auth_header)
+    if manager_valid:
+        return True, {'id': manager.get('id'), 'type': 'manager'}
+
+    return False, None
+
+
 def get_category_name(category_id):
     """Lấy tên danh mục từ catalog-service."""
     try:
@@ -50,12 +80,21 @@ class BookViewSet(viewsets.ViewSet):
         category_id = request.query_params.get('category_id')
         if category_id:
             books = books.filter(category_id=category_id)
-        author = request.query_params.get('author')
-        if author:
-            books = books.filter(author__icontains=author)
-        title = request.query_params.get('title')
-        if title:
-            books = books.filter(title__icontains=title)
+        
+        # Tìm kiếm chung hoặc tách riêng
+        search = request.query_params.get('search')
+        if search:
+            # Tìm cả title và author
+            from django.db.models import Q
+            books = books.filter(Q(title__icontains=search) | Q(author__icontains=search))
+        else:
+            # Tìm riêng từng field (backward compatible)
+            author = request.query_params.get('author')
+            if author:
+                books = books.filter(author__icontains=author)
+            title = request.query_params.get('title')
+            if title:
+                books = books.filter(title__icontains=title)
         return Response(BookSerializer(books, many=True).data)
 
     def retrieve(self, request, pk=None):
@@ -67,11 +106,11 @@ class BookViewSet(viewsets.ViewSet):
             return Response({'error': 'Sách không tồn tại'}, status=404)
 
     def create(self, request):
-        """Tạo sách mới - chỉ staff."""
+        """Tạo sách mới - staff/manager."""
         auth = request.headers.get('Authorization', '')
-        valid, staff = verify_staff_token(auth)
+        valid, actor = verify_admin_token(auth)
         if not valid:
-            return Response({'error': 'Chỉ nhân viên mới được thêm sách'}, status=403)
+            return Response({'error': 'Chỉ admin/staff mới được thêm sách'}, status=403)
 
         serializer = BookCreateSerializer(data=request.data)
         if not serializer.is_valid():
@@ -82,33 +121,39 @@ class BookViewSet(viewsets.ViewSet):
         category_name = get_category_name(category_id) if category_id else ''
 
         book = serializer.save(
-            created_by_staff_id=staff['id'],
+            created_by_staff_id=actor['id'],
             category_name=category_name
         )
         return Response(BookSerializer(book).data, status=201)
 
     def update(self, request, pk=None):
-        """Cập nhật sách - chỉ staff."""
+        """Cập nhật sách - staff/manager."""
         auth = request.headers.get('Authorization', '')
-        valid, staff = verify_staff_token(auth)
+        valid, _ = verify_admin_token(auth)
         if not valid:
-            return Response({'error': 'Chỉ nhân viên mới được sửa sách'}, status=403)
+            return Response({'error': 'Chỉ admin/staff mới được sửa sách'}, status=403)
         try:
             book = Book.objects.get(pk=pk)
         except Book.DoesNotExist:
             return Response({'error': 'Sách không tồn tại'}, status=404)
-        serializer = BookSerializer(book, data=request.data, partial=True)
+
+        payload = request.data.copy()
+        if 'category_id' in payload:
+            category_id = payload.get('category_id')
+            payload['category_name'] = get_category_name(category_id) if category_id else ''
+
+        serializer = BookCreateSerializer(book, data=payload, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(BookSerializer(book).data)
         return Response(serializer.errors, status=400)
 
     def destroy(self, request, pk=None):
-        """Xóa sách (soft delete) - chỉ staff."""
+        """Xóa sách (soft delete) - staff/manager."""
         auth = request.headers.get('Authorization', '')
-        valid, _ = verify_staff_token(auth)
+        valid, _ = verify_admin_token(auth)
         if not valid:
-            return Response({'error': 'Chỉ nhân viên mới được xóa sách'}, status=403)
+            return Response({'error': 'Chỉ admin/staff mới được xóa sách'}, status=403)
         try:
             book = Book.objects.get(pk=pk)
             book.is_active = False

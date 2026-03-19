@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (RegisterView, LoginView, LogoutView,
-                    CustomerDetailView, VerifyTokenView, CustomerListView)
+                    CustomerDetailView, VerifyTokenView, CustomerListView, AdminCustomerStatusView)
 
 urlpatterns = [
     path('customers/', CustomerListView.as_view(), name='customer-list'),
@@ -9,4 +9,5 @@ urlpatterns = [
     path('customers/logout/', LogoutView.as_view(), name='logout'),
     path('customers/verify-token/', VerifyTokenView.as_view(), name='verify-token'),
     path('customers/<int:customer_id>/', CustomerDetailView.as_view(), name='customer-detail'),
+    path('customers/<int:customer_id>/admin-status/', AdminCustomerStatusView.as_view(), name='customer-admin-status'),
 ]

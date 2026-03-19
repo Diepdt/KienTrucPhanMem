@@ -93,6 +93,7 @@
     <script>
         let cartData = null;
         let customerInfo = null;
+        let selectedItems = new Set();
 
         function formatPrice(value) {
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
@@ -119,6 +120,66 @@
             `;
         }
 
+        function toggleSelectItem(itemId) {
+            if (selectedItems.has(itemId)) {
+                selectedItems.delete(itemId);
+            } else {
+                selectedItems.add(itemId);
+            }
+            updateSummary();
+        }
+
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('select-all-checkbox');
+            if (!cartData?.items) return;
+
+            if (checkbox.checked) {
+                cartData.items.forEach(item => selectedItems.add(item.id));
+            } else {
+                selectedItems.clear();
+            }
+
+            document.querySelectorAll('.item-checkbox').forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+            updateSummary();
+        }
+
+        function updateSummary() {
+            if (!cartData?.items) return;
+
+            let selectedCount = 0;
+            let selectedTotal = 0;
+
+            cartData.items.forEach(item => {
+                if (selectedItems.has(item.id)) {
+                    selectedCount += item.quantity;
+                    selectedTotal += parseFloat(item.item_total || 0);
+                }
+            });
+
+            document.getElementById('selected-count').textContent = selectedCount;
+            document.getElementById('selected-total').textContent = formatPrice(selectedTotal);
+
+            const checkoutBtn = document.getElementById('checkout-btn');
+            if (selectedCount === 0) {
+                checkoutBtn.disabled = true;
+                checkoutBtn.textContent = '<i class="fa fa-credit-card me-2"></i>Chọn sản phẩm để thanh toán';
+            } else {
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerHTML = `<i class="fa fa-credit-card me-2"></i>Thanh toán (${selectedCount} sản phẩm)`;
+            }
+        }
+
+        function goCheckout() {
+            if (selectedItems.size === 0) {
+                alert('Vui lòng chọn ít nhất 1 sản phẩm');
+                return;
+            }
+            const selectedIds = Array.from(selectedItems).join(',');
+            window.location.href = `/customer/checkout/?items=${selectedIds}`;
+        }
+
         function renderCartItems(cart) {
             if (!cart.items || cart.items.length === 0) {
                 return renderEmptyCart();
@@ -127,6 +188,10 @@
             const itemsHtml = cart.items.map(item => `
                 <div class="cart-item mb-3" data-item-id="${item.id}">
                     <div class="row align-items-center g-3">
+                        <div class="col-auto">
+                            <input type="checkbox" class="item-checkbox form-check-input" style="width: 20px; height: 20px; cursor: pointer;" 
+                                   onchange="toggleSelectItem(${item.id})" ${selectedItems.has(item.id) ? 'checked' : ''}>
+                        </div>
                         <div class="col-auto">
                             <img src="${item.book_cover_url || getDefaultBookImage()}"
                                  class="cart-image" alt="${item.book_title}">
@@ -144,7 +209,7 @@
                                     <i class="fa fa-minus"></i>
                                 </button>
                                 <input type="number" class="form-control" value="${item.quantity}" min="1" max="99"
-                                       onchange="updateQuantity(${item.id}, this.value)" readonly>
+                                       onchange="updateQuantity(${item.id}, this.value)">
                                 <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">
                                     <i class="fa fa-plus"></i>
                                 </button>
@@ -168,19 +233,32 @@
                 <div class="cart-summary">
                     <h5><i class="fa fa-calculator me-2"></i>Tóm tắt đơn hàng</h5>
                     <hr>
+                    <div class="d-flex justify-content-between mb-2" style="border-bottom: 1px solid #e9ecef; padding-bottom: 0.5rem;">
+                        <label class="form-check-label fw-bold" style="cursor: pointer;">
+                            <input type="checkbox" id="select-all-checkbox" class="form-check-input" onchange="toggleSelectAll()" style="width: 18px; height: 18px; cursor: pointer;">
+                            Chọn tất cả
+                        </label>
+                    </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Tổng sản phẩm:</span>
                         <span>${totalItems} sản phẩm</span>
                     </div>
+                    <div class="d-flex justify-content-between mb-2" style="border-bottom: 1px solid #e9ecef; padding-bottom: 0.5rem;">
+                        <span class="text-secondary">Sản phẩm chọn:</span>
+                        <span id="selected-count" class="text-primary fw-bold">0</span>
+                    </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Tổng tiền:</span>
+                        <span>Tổng tiền tất cả:</span>
                         <strong class="text-primary">${formatPrice(cart.total)}</strong>
                     </div>
-                    <hr>
+                    <div class="d-flex justify-content-between mb-3" style="border-top: 2px solid #e9ecef; padding-top: 0.75rem;">
+                        <span class="fw-bold">Tiền thanh toán:</span>
+                        <strong class="text-success fs-5" id="selected-total">${formatPrice(0)}</strong>
+                    </div>
                     <div class="d-grid gap-2">
-                        <a href="/customer/checkout/" class="btn btn-primary btn-lg">
-                            <i class="fa fa-credit-card me-2"></i>Thanh toán
-                        </a>
+                        <button class="btn btn-primary btn-lg" id="checkout-btn" onclick="goCheckout()" disabled>
+                            <i class="fa fa-credit-card me-2"></i>Chọn sản phẩm để thanh toán
+                        </button>
                         <button class="btn btn-outline-danger" onclick="clearCart()">
                             <i class="fa fa-trash me-2"></i>Xóa toàn bộ
                         </button>

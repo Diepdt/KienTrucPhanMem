@@ -23,46 +23,18 @@
             <p class="mb-0 mt-2">Chào mừng bạn đến với LaptopShop</p>
         </div>
         <div class="login-body">
-            <ul class="nav nav-tabs mb-3" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-customer" type="button">Customer</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-admin" type="button">Admin</button>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="tab-customer">
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                        <input id="customer-email" type="email" class="form-control" placeholder="customer@test.local" required>
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input id="customer-password" type="password" class="form-control" placeholder="Mật khẩu" required>
-                    </div>
-                    <div id="customer-error" class="alert alert-danger d-none py-2 small"></div>
-                    <button type="button" class="btn btn-login" onclick="loginCustomer()">
-                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập Customer
-                    </button>
-                </div>
-
-                <div class="tab-pane fade" id="tab-admin">
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                        <input id="admin-email" type="email" class="form-control" placeholder="admin/staff email" required>
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input id="admin-password" type="password" class="form-control" placeholder="Mật khẩu" required>
-                    </div>
-                    <div id="admin-error" class="alert alert-danger d-none py-2 small"></div>
-                    <button type="button" class="btn btn-login" onclick="loginAdmin()">
-                        <i class="fas fa-user-shield me-2"></i>Đăng nhập Admin
-                    </button>
-                </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input id="login-email" type="email" class="form-control" placeholder="Email" required>
             </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                <input id="login-password" type="password" class="form-control" placeholder="Mật khẩu" required>
+            </div>
+            <div id="login-error" class="alert alert-danger d-none py-2 small"></div>
+            <button type="button" class="btn btn-login" onclick="loginUnified()">
+                <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+            </button>
             <div class="register-link">
                 <p class="mb-0">Chưa có tài khoản? <a href="/user/register/">Đăng ký ngay</a></p>
             </div>
@@ -82,40 +54,35 @@
             return { ok: res.ok, status: res.status, data };
         }
 
-        function showError(elementId, message) {
-            const el = document.getElementById(elementId);
+        function showError(message) {
+            const el = document.getElementById('login-error');
             el.textContent = message;
             el.classList.remove('d-none');
         }
 
         function clearErrors() {
-            document.getElementById('customer-error').classList.add('d-none');
-            document.getElementById('admin-error').classList.add('d-none');
+            document.getElementById('login-error').classList.add('d-none');
         }
 
-        async function loginCustomer() {
-            clearErrors();
-            const email = document.getElementById('customer-email').value.trim();
-            const password = document.getElementById('customer-password').value;
-
-            const result = await postJson('/api/customers/login/', { email, password });
-            if (!result.ok) {
-                showError('customer-error', result.data.error || 'Đăng nhập customer thất bại');
-                return;
-            }
-
-            localStorage.setItem('customer_token', result.data.token);
-            localStorage.setItem('customer_info', JSON.stringify(result.data.customer || {}));
+        function clearAuthStorage() {
+            localStorage.removeItem('customer_token');
+            localStorage.removeItem('customer_info');
             localStorage.removeItem('admin_token');
             localStorage.removeItem('admin_info');
             localStorage.removeItem('admin_type');
-            window.location.href = '/customer/';
         }
 
-        async function loginAdmin() {
+        async function loginUnified() {
             clearErrors();
-            const email = document.getElementById('admin-email').value.trim();
-            const password = document.getElementById('admin-password').value;
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showError('Vui lòng nhập email và mật khẩu.');
+                return;
+            }
+
+            clearAuthStorage();
 
             let result = await postJson('/api/manager/login/', { email, password });
             if (result.ok) {
@@ -135,8 +102,22 @@
                 return;
             }
 
-            showError('admin-error', 'Đăng nhập admin thất bại (manager/staff đều không hợp lệ).');
+            result = await postJson('/api/customers/login/', { email, password });
+            if (!result.ok) {
+                showError(result.data.error || 'Đăng nhập thất bại');
+                return;
+            }
+
+            localStorage.setItem('customer_token', result.data.token);
+            localStorage.setItem('customer_info', JSON.stringify(result.data.customer || {}));
+            window.location.href = '/customer/';
         }
+
+        document.getElementById('login-password').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                loginUnified();
+            }
+        });
     </script>
 </body>
 </html>

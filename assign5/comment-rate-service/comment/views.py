@@ -25,6 +25,41 @@ def verify_customer_token(auth_header):
     return False, None
 
 
+def verify_manager_token(auth_header):
+    try:
+        resp = http_requests.get(
+            f"{django_settings.MANAGER_SERVICE_URL}/api/manager/verify-token/",
+            headers={'Authorization': auth_header}, timeout=5)
+        if resp.status_code == 200:
+            d = resp.json()
+            return d.get('valid', False), d.get('manager')
+    except Exception as e:
+        logger.error(f"verify_manager error: {e}")
+    return False, None
+
+
+def has_customer_purchased_book(customer_id, book_id):
+    try:
+        resp = http_requests.get(
+            f"{django_settings.ORDER_SERVICE_URL}/api/orders/customer/{customer_id}/internal/",
+            timeout=5
+        )
+        if resp.status_code != 200:
+            return False
+
+        orders = resp.json() if isinstance(resp.json(), list) else []
+        for order in orders:
+            if order.get('status') == 'cancelled':
+                continue
+            for item in order.get('items', []):
+                if int(item.get('book_id', 0)) == int(book_id):
+                    return True
+    except Exception as e:
+        logger.error(f"has_customer_purchased_book error: {e}")
+
+    return False
+
+
 class CreateReviewView(APIView):
     """Khách hàng đánh giá sách."""
 
@@ -41,6 +76,9 @@ class CreateReviewView(APIView):
         if not book_id or rating is None:
             return Response({'error': 'book_id và rating bắt buộc'}, status=400)
 
+        if not has_customer_purchased_book(customer['id'], book_id):
+            return Response({'error': 'Bạn chỉ có thể đánh giá sản phẩm đã mua.'}, status=403)
+
         # Kiểm tra nếu đã đánh giá rồi → cập nhật, chưa → tạo mới
         review, created = Review.objects.update_or_create(
             customer_id=customer['id'],
@@ -52,6 +90,55 @@ class CreateReviewView(APIView):
             'message': action,
             'review': ReviewSerializer(review).data
         }, status=201 if created else 200)
+
+
+class AdminReviewListView(APIView):
+    """Manager xem thống kê và danh sách đánh giá."""
+
+    def get(self, request):
+        auth = request.headers.get('Authorization', '')
+        valid, _manager = verify_manager_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+
+        reviews = Review.objects.all().order_by('-created_at')
+        stats = reviews.aggregate(avg_rating=Avg('rating'), total=Count('id'))
+
+        distribution = {str(i): reviews.filter(rating=i).count() for i in range(1, 6)}
+
+        top_books_qs = (
+            Review.objects.values('book_id')
+            .annotate(avg_rating=Avg('rating'), total_reviews=Count('id'))
+            .order_by('-avg_rating', '-total_reviews')[:10]
+        )
+
+        return Response({
+            'summary': {
+                'total_reviews': stats['total'] or 0,
+                'avg_rating': round(stats['avg_rating'] or 0, 2),
+                'rating_distribution': distribution,
+            },
+            'top_books': list(top_books_qs),
+            'results': ReviewSerializer(reviews, many=True).data,
+        })
+
+
+class AdminReviewDetailView(APIView):
+    """Manager xóa đánh giá không phù hợp."""
+
+    def delete(self, request, review_id):
+        auth = request.headers.get('Authorization', '')
+        valid, _manager = verify_manager_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+
+        try:
+            review = Review.objects.get(pk=review_id)
+        except Review.DoesNotExist:
+            return Response({'error': 'Không tìm thấy đánh giá'}, status=404)
+
+        review.delete()
+        return Response({'message': 'Đã xóa đánh giá thành công'})
 
 
 class BookReviewListView(APIView):

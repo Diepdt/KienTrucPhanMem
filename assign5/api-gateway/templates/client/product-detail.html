@@ -24,6 +24,12 @@
             background-color: transparent;
             padding: 0;
         }
+        .review-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -53,7 +59,6 @@
                     <div class="mb-3">
                         <span class="badge text-bg-light border me-2"><i class="fa fa-box me-1"></i>Kho: <span id="product-stock">0</span></span>
                         <span class="badge text-bg-light border"><i class="fa fa-tags me-1"></i>Danh mục: <span id="product-category">...</span></span>
-                        <span class="badge text-bg-light border" id="product-isbn-badge" style="display: none;"><i class="fa fa-barcode me-1"></i>ISBN: <span id="product-isbn">...</span></span>
                     </div>
 
                     <p class="mb-4" id="product-short-desc">...</p>
@@ -86,6 +91,21 @@
                 </div>
             </div>
         </div>
+
+        <section class="mt-4" id="review-section" style="display:none;">
+            <div class="product-box">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h4 class="mb-0"><i class="fa fa-star me-2 text-warning"></i>Đánh giá sản phẩm</h4>
+                    <span class="badge text-bg-light border">Điểm TB: <span id="review-avg-rating">0.0</span>/5 (<span id="review-total">0</span>)</span>
+                </div>
+
+                <div class="alert alert-info mb-3" id="review-form-wrap">
+                    Bạn chỉ có thể đánh giá sản phẩm tại <strong>chi tiết đơn hàng đã mua</strong>.
+                </div>
+
+                <div id="review-list" class="d-grid gap-2"></div>
+            </div>
+        </section>
     </main>
 
     {% include 'client/layout/footer.html' %}
@@ -94,6 +114,20 @@
     <script>
         let currentBookId = null;
 
+        function escapeHtml(value) {
+            return String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function renderStars(rating) {
+            const full = Math.max(0, Math.min(5, Number(rating || 0)));
+            return Array.from({ length: 5 }, (_, i) => i < full ? '★' : '☆').join('');
+        }
+
         function formatPrice(value) {
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
         }
@@ -101,6 +135,22 @@
         function getBookIdFromQuery() {
             const url = new URL(window.location.href);
             return url.searchParams.get('id');
+        }
+
+        async function resolveCategoryName(book) {
+            if (!book?.category_id) {
+                return book?.category_name || 'Chưa phân loại';
+            }
+
+            try {
+                const response = await fetch(`/api/categories/${book.category_id}/`);
+                const category = await response.json();
+                if (response.ok && category?.name) {
+                    return category.name;
+                }
+            } catch {}
+
+            return book?.category_name || 'Chưa phân loại';
         }
 
         async function loadBookDetail() {
@@ -125,6 +175,8 @@
                     return;
                 }
 
+                const categoryName = await resolveCategoryName(book);
+
                 // Restore the original HTML structure and populate with data
                 container.innerHTML = `
                     <div class="col-lg-5">
@@ -140,8 +192,7 @@
 
                             <div class="mb-3">
                                 <span class="badge text-bg-${book.stock > 0 ? 'success' : 'danger'} me-2"><i class="fa fa-box me-1"></i>Kho: <span id="product-stock">${book.stock}</span></span>
-                                <span class="badge text-bg-light border me-2"><i class="fa fa-tags me-1"></i>Danh mục: <span id="product-category">${book.category_name || 'Chưa phân loại'}</span></span>
-                                ${book.isbn ? `<span class="badge text-bg-light border"><i class="fa fa-barcode me-1"></i>ISBN: <span id="product-isbn">${book.isbn}</span></span>` : ''}
+                                <span class="badge text-bg-light border me-2"><i class="fa fa-tags me-1"></i>Danh mục: <span id="product-category">${categoryName}</span></span>
                             </div>
 
                             <p class="mb-4" id="product-short-desc">${(book.description || '').slice(0, 200) || 'Không có mô tả ngắn.'}${book.description && book.description.length > 200 ? '...' : ''}</p>
@@ -177,11 +228,54 @@
 
                 currentBookId = book.id;
                 document.title = `BookStore - ${book.title}`;
+                document.getElementById('review-section').style.display = 'block';
+                await loadReviews();
 
             } catch (error) {
                 container.innerHTML = `<div class="col-12"><div class="alert alert-danger"><i class="fa fa-exclamation-triangle me-2"></i>Lỗi tải sản phẩm: ${error.message}</div></div>`;
             }
         }
+
+        async function loadReviews() {
+            if (!currentBookId) return;
+
+            const listEl = document.getElementById('review-list');
+            const avgEl = document.getElementById('review-avg-rating');
+            const totalEl = document.getElementById('review-total');
+            try {
+                const res = await fetch(`/api/reviews/books/${currentBookId}/`);
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    listEl.innerHTML = '<div class="alert alert-warning mb-0">Không thể tải đánh giá.</div>';
+                    return;
+                }
+
+                avgEl.textContent = String(data.avg_rating ?? 0);
+                totalEl.textContent = String(data.total_reviews ?? 0);
+
+                const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+                if (!reviews.length) {
+                    listEl.innerHTML = '<div class="text-muted">Chưa có đánh giá nào cho sản phẩm này.</div>';
+                    return;
+                }
+
+                listEl.innerHTML = reviews.map((review) => `
+                    <div class="review-card">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>Khách hàng #${review.customer_id}</strong>
+                            <span class="text-warning">${renderStars(review.rating)}</span>
+                        </div>
+                        <div class="small text-muted mb-1">${new Date(review.created_at).toLocaleString('vi-VN')}</div>
+                        <div>${escapeHtml(review.comment || '(Không có nhận xét)')}</div>
+                    </div>
+                `).join('');
+            } catch {
+                listEl.innerHTML = '<div class="alert alert-warning mb-0">Không thể tải đánh giá.</div>';
+            }
+        }
+
+        // Đã chuyển luồng gửi đánh giá sang trang chi tiết đơn hàng
 
         async function addCurrentToCart() {
             if (!currentBookId) return;

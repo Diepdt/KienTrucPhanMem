@@ -51,17 +51,16 @@
 
         <div class="filter-section">
             <div class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" class="form-control" id="search-title" placeholder="Tìm theo tên sách...">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="search-query" placeholder="Tìm kiếm theo tên sách, tác giả...">
+                        <button class="btn btn-primary" onclick="searchBooks()">
+                            <i class="fa fa-search me-2"></i>Tìm kiếm
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <input type="text" class="form-control" id="search-author" placeholder="Tìm theo tác giả...">
-                </div>
-                <div class="col-md-4">
-                    <button class="btn btn-primary" onclick="searchBooks()">
-                        <i class="fa fa-search me-2"></i>Tìm kiếm
-                    </button>
-                    <button class="btn btn-outline-secondary ms-2" onclick="resetSearch()">
+                    <button class="btn btn-outline-secondary w-100" onclick="resetSearch()">
                         <i class="fa fa-refresh me-2"></i>Làm mới
                     </button>
                 </div>
@@ -79,7 +78,25 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
         }
 
-        function renderProducts(products) {
+        function renderStars(avg) {
+            const rounded = Math.round(Number(avg || 0));
+            return Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('');
+        }
+
+        async function fetchRatingMap(bookIds) {
+            if (!Array.isArray(bookIds) || !bookIds.length) return {};
+            try {
+                const params = new URLSearchParams({ book_ids: bookIds.join(',') });
+                const response = await fetch(`/api/reviews/avg-ratings/?${params.toString()}`);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || typeof data !== 'object') return {};
+                return data;
+            } catch {
+                return {};
+            }
+        }
+
+        function renderProducts(products, ratingMap = {}) {
             const list = document.getElementById('product-list');
             if (!products.length) {
                 list.innerHTML = '<div class="col-12"><div class="alert alert-warning">Không có sản phẩm nào.</div></div>';
@@ -88,6 +105,7 @@
 
             list.innerHTML = products.map((product) => {
                 const cover = product.cover_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+                const rating = ratingMap[String(product.id)] || { avg_rating: 0, count: 0 };
                 return `
                     <div class="col-sm-6 col-lg-4 col-xl-3">
                         <div class="product-card h-100">
@@ -95,6 +113,10 @@
                             <div class="p-3 d-flex flex-column h-100">
                                 <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=${product.id}">${product.title}</a></h5>
                                 <p class="text-muted mb-2"><small><i class="fa fa-user me-1"></i>${product.author}</small></p>
+                                <p class="mb-2 small">
+                                    <span class="text-warning">${renderStars(rating.avg_rating)}</span>
+                                    <span class="text-muted">(${rating.count || 0})</span>
+                                </p>
                                 <div class="product-actions d-grid gap-2">
                                     <p class="text-dark fs-6 fw-bold mb-1">${formatPrice(product.price)}</p>
                                     <a href="/customer/product-detail/?id=${product.id}" class="btn btn-outline-secondary">
@@ -119,8 +141,9 @@
                 let url = '/api/books/';
                 const params = new URLSearchParams();
 
-                if (filters.title) params.append('title', filters.title);
-                if (filters.author) params.append('author', filters.author);
+                if (filters.search) {
+                    params.append('search', filters.search);
+                }
 
                 if (params.toString()) {
                     url += '?' + params.toString();
@@ -133,26 +156,24 @@
                     throw new Error('Không thể tải danh sách sản phẩm');
                 }
 
-                renderProducts(data);
+                const ratingMap = await fetchRatingMap(data.map(product => product.id));
+                renderProducts(data, ratingMap);
             } catch (error) {
                 list.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
             }
         }
 
         function searchBooks() {
-            const title = document.getElementById('search-title').value.trim();
-            const author = document.getElementById('search-author').value.trim();
-
+            const query = document.getElementById('search-query').value.trim();
             const filters = {};
-            if (title) filters.title = title;
-            if (author) filters.author = author;
-
+            if (query) {
+                filters.search = query;
+            }
             loadProducts(filters);
         }
 
         function resetSearch() {
-            document.getElementById('search-title').value = '';
-            document.getElementById('search-author').value = '';
+            document.getElementById('search-query').value = '';
             loadProducts();
         }
 
@@ -209,14 +230,14 @@
 
         // Search on Enter key
         document.addEventListener('DOMContentLoaded', function() {
-            const searchInputs = document.querySelectorAll('#search-title, #search-author');
-            searchInputs.forEach(input => {
-                input.addEventListener('keypress', function(e) {
+            const searchInput = document.getElementById('search-query');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         searchBooks();
                     }
                 });
-            });
+            }
         });
 
         window.addEventListener('load', () => {

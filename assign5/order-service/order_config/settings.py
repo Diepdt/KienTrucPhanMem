@@ -35,6 +35,7 @@ DATABASES = {
     }
 }
 CUSTOMER_SERVICE_URL = os.environ.get('CUSTOMER_SERVICE_URL', 'http://customer-service:8003')
+MANAGER_SERVICE_URL = os.environ.get('MANAGER_SERVICE_URL', 'http://manager-service:8002')
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://cart-service:8006')
 BOOK_SERVICE_URL = os.environ.get('BOOK_SERVICE_URL', 'http://book-service:8005')
 PAY_SERVICE_URL = os.environ.get('PAY_SERVICE_URL', 'http://pay-service:8009')

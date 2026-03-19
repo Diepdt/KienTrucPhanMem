@@ -2,6 +2,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings as django_settings
+from django.db.models import Sum
+from django.utils import timezone
+from datetime import timedelta
 import requests as http_requests
 import logging
 
@@ -21,6 +24,19 @@ def verify_customer_token(auth_header):
             return d.get('valid', False), d.get('customer')
     except Exception as e:
         logger.error(f"verify_customer error: {e}")
+    return False, None
+
+
+def verify_manager_token(auth_header):
+    try:
+        resp = http_requests.get(
+            f"{django_settings.MANAGER_SERVICE_URL}/api/manager/verify-token/",
+            headers={'Authorization': auth_header}, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('valid', False), data.get('manager')
+    except Exception as e:
+        logger.error(f"verify_manager error: {e}")
     return False, None
 
 
@@ -184,10 +200,6 @@ class CreateOrderView(APIView):
         # 9. Xóa giỏ hàng
         clear_cart(customer['id'])
 
-        # 10. Cập nhật trạng thái
-        order.status = 'confirmed'
-        order.save()
-
         return Response({
             'order': OrderSerializer(order).data,
             'payment': payment,
@@ -259,3 +271,121 @@ class OrderDetailView(APIView):
         order.status = 'cancelled'
         order.save()
         return Response(OrderSerializer(order).data)
+
+
+class AdminOrderListView(APIView):
+    """Danh sách đơn hàng cho manager/admin."""
+
+    def get(self, request):
+        auth = request.headers.get('Authorization', '')
+        valid, manager = verify_manager_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+
+        sort_by = request.query_params.get('sort_by', 'created_at')
+        order_dir = request.query_params.get('order', 'desc').lower()
+
+        sort_field_map = {
+            'created_at': 'created_at',
+            'total_amount': 'total_amount',
+        }
+        sort_field = sort_field_map.get(sort_by, 'created_at')
+        if order_dir == 'asc':
+            ordering = sort_field
+        else:
+            ordering = f"-{sort_field}"
+
+        orders = Order.objects.all().prefetch_related('items').order_by(ordering)
+
+        return Response({
+            'actor': {'id': manager.get('id'), 'role': 'manager'},
+            'sort': {'sort_by': sort_field, 'order': 'asc' if order_dir == 'asc' else 'desc'},
+            'count': orders.count(),
+            'results': OrderSerializer(orders, many=True).data,
+        })
+
+
+class AdminOrderDetailView(APIView):
+    """Chi tiết/cập nhật trạng thái đơn hàng cho manager/admin."""
+
+    ALLOWED_STATUS = {'pending', 'confirmed', 'shipping', 'delivered'}
+
+    def get(self, request, order_id):
+        auth = request.headers.get('Authorization', '')
+        valid, _manager = verify_manager_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+
+        try:
+            order = Order.objects.prefetch_related('items').get(pk=order_id)
+            return Response(OrderSerializer(order).data)
+        except Order.DoesNotExist:
+            return Response({'error': 'Không tìm thấy đơn hàng'}, status=404)
+
+    def patch(self, request, order_id):
+        auth = request.headers.get('Authorization', '')
+        valid, _manager = verify_manager_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+
+        new_status = request.data.get('status')
+        if new_status not in self.ALLOWED_STATUS:
+            return Response({
+                'error': 'Trạng thái không hợp lệ',
+                'allowed_status': sorted(self.ALLOWED_STATUS)
+            }, status=400)
+
+        try:
+            order = Order.objects.get(pk=order_id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Không tìm thấy đơn hàng'}, status=404)
+
+        order.status = new_status
+        order.save(update_fields=['status', 'updated_at'])
+        return Response(OrderSerializer(order).data)
+
+
+class AdminOrderSummaryView(APIView):
+    """Thống kê đơn hàng/doanh thu cho manager dashboard."""
+
+    def get(self, request):
+        auth = request.headers.get('Authorization', '')
+        valid, manager = verify_manager_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+
+        orders = Order.objects.all()
+        total_orders = orders.count()
+        delivered_orders = orders.filter(status='delivered').count()
+        cancelled_orders = orders.filter(status='cancelled').count()
+        pending_orders = orders.filter(status='pending').count()
+
+        gross_revenue = orders.exclude(status='cancelled').aggregate(total=Sum('total_amount')).get('total') or 0
+        delivered_revenue = orders.filter(status='delivered').aggregate(total=Sum('total_amount')).get('total') or 0
+
+        now = timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_30_days = now - timedelta(days=30)
+
+        month_orders = orders.filter(created_at__gte=month_start).count()
+        month_revenue = orders.filter(created_at__gte=month_start).exclude(status='cancelled').aggregate(total=Sum('total_amount')).get('total') or 0
+
+        recent_orders_qs = orders.filter(created_at__gte=last_30_days).exclude(status='cancelled')
+        recent_orders_count = recent_orders_qs.count()
+        recent_orders_revenue = recent_orders_qs.aggregate(total=Sum('total_amount')).get('total') or 0
+
+        return Response({
+            'actor': {'id': manager.get('id'), 'role': 'manager'},
+            'summary': {
+                'total_orders': total_orders,
+                'delivered_orders': delivered_orders,
+                'pending_orders': pending_orders,
+                'cancelled_orders': cancelled_orders,
+                'gross_revenue': float(gross_revenue),
+                'delivered_revenue': float(delivered_revenue),
+                'month_orders': month_orders,
+                'month_revenue': float(month_revenue),
+                'last_30_days_orders': recent_orders_count,
+                'last_30_days_revenue': float(recent_orders_revenue),
+            }
+        })

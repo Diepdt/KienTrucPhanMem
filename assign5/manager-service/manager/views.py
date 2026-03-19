@@ -28,7 +28,7 @@ class ManagerViewSet(viewsets.ModelViewSet):
         return ManagerSerializer
 
     def list(self, request):
-        managers = Manager.objects.filter(is_active=True)
+        managers = Manager.objects.all()
         return Response(ManagerSerializer(managers, many=True).data)
 
     def create(self, request):
@@ -37,6 +37,21 @@ class ManagerViewSet(viewsets.ModelViewSet):
             mgr = serializer.save()
             return Response(ManagerSerializer(mgr).data, status=201)
         return Response(serializer.errors, status=400)
+
+    def update(self, request, pk=None):
+        try:
+            mgr = Manager.objects.get(pk=pk)
+        except Manager.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+
+        serializer = ManagerSerializer(mgr, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
 
 
 class ManagerLoginView(APIView):
@@ -47,11 +62,13 @@ class ManagerLoginView(APIView):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
         try:
-            mgr = Manager.objects.get(email=email, is_active=True)
+            mgr = Manager.objects.get(email=email)
         except Manager.DoesNotExist:
             return Response({'error': 'Invalid credentials'}, status=401)
         if not mgr.check_password(password):
             return Response({'error': 'Invalid credentials'}, status=401)
+        if not mgr.is_active:
+            return Response({'error': 'Tài khoản hiện đang bị cấm'}, status=401)
         token, _ = ManagerToken.objects.get_or_create(
             manager=mgr, defaults={'key': ManagerToken.generate_key()})
         return Response({'token': token.key, 'manager': ManagerSerializer(mgr).data})

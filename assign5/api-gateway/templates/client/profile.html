@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BookStore - Thông tin cá nhân</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .profile-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <nav class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/customer/">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Thông tin cá nhân</li>
+            </ol>
+        </nav>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="profile-card">
+                    <h1 class="h4 mb-3"><i class="fa fa-user me-2"></i>Thông tin cá nhân</h1>
+                    <form onsubmit="event.preventDefault(); updateCustomerProfile();">
+                        <div class="mb-3">
+                            <label class="form-label">Họ tên</label>
+                            <input id="customer-name" type="text" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input id="customer-email" type="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số điện thoại</label>
+                            <input id="customer-phone" type="text" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ</label>
+                            <textarea id="customer-address" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div id="customer-profile-error" class="alert alert-danger d-none py-2 small"></div>
+                        <div id="customer-profile-success" class="alert alert-success d-none py-2 small"></div>
+
+                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentCustomerId = null;
+
+        function showCustomerError(message) {
+            const errorEl = document.getElementById('customer-profile-error');
+            const successEl = document.getElementById('customer-profile-success');
+            successEl.classList.add('d-none');
+            errorEl.textContent = message;
+            errorEl.classList.remove('d-none');
+        }
+
+        function showCustomerSuccess(message) {
+            const errorEl = document.getElementById('customer-profile-error');
+            const successEl = document.getElementById('customer-profile-success');
+            errorEl.classList.add('d-none');
+            successEl.textContent = message;
+            successEl.classList.remove('d-none');
+        }
+
+        async function loadCustomerProfile() {
+            const token = localStorage.getItem('customer_token');
+            const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+            currentCustomerId = info.id;
+
+            if (!token || !currentCustomerId) {
+                showCustomerError('Bạn cần đăng nhập để xem thông tin cá nhân.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/customers/${currentCustomerId}/`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Không tải được thông tin cá nhân');
+                }
+
+                document.getElementById('customer-name').value = data.name || '';
+                document.getElementById('customer-email').value = data.email || '';
+                document.getElementById('customer-phone').value = data.phone || '';
+                document.getElementById('customer-address').value = data.address || '';
+            } catch (error) {
+                showCustomerError(error.message);
+            }
+        }
+
+        async function updateCustomerProfile() {
+            const token = localStorage.getItem('customer_token');
+            if (!token || !currentCustomerId) {
+                showCustomerError('Phiên đăng nhập không hợp lệ.');
+                return;
+            }
+
+            const payload = {
+                name: document.getElementById('customer-name').value.trim(),
+                email: document.getElementById('customer-email').value.trim(),
+                phone: document.getElementById('customer-phone').value.trim(),
+                address: document.getElementById('customer-address').value.trim(),
+            };
+
+            try {
+                const response = await fetch(`/api/customers/${currentCustomerId}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(data.error || Object.values(data || {}).flat().join(' | ') || 'Cập nhật thất bại');
+                }
+
+                localStorage.setItem('customer_info', JSON.stringify(data));
+                showCustomerSuccess('Cập nhật thông tin cá nhân thành công.');
+
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+            } catch (error) {
+                showCustomerError(error.message);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            loadCustomerProfile();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Review Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body class="sb-nav-fixed">
+    {% include 'admin/layout/header.html' %}
+    <div id="layoutSidenav">
+        {% include 'admin/layout/sidenav.html' %}
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Review Management</h1>
+                    <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item active">Reviews</li></ol>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4"><div class="card bg-primary text-white"><div class="card-body">Tổng đánh giá: <span id="review-total">0</span></div></div></div>
+                        <div class="col-md-4"><div class="card bg-success text-white"><div class="card-body">Điểm trung bình: <span id="review-avg">0</span></div></div></div>
+                        <div class="col-md-4"><div class="card bg-dark text-white"><div class="card-body">Sách được đánh giá: <span id="review-books">0</span></div></div></div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">Thống kê theo số sao</div>
+                        <div class="card-body"><canvas id="review-chart"></canvas></div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">Danh sách đánh giá</div>
+                        <div class="card-body table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Book ID</th>
+                                        <th>Customer ID</th>
+                                        <th>Rating</th>
+                                        <th>Comment</th>
+                                        <th>Created</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="review-list-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            {% include 'admin/layout/footer.html' %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (typeof adminRequireManagerPage === 'function' && !adminRequireManagerPage()) {
+            throw new Error('Forbidden page for staff');
+        }
+
+        let reviewChart = null;
+
+        function stars(rating) {
+            const n = Number(rating || 0);
+            return Array.from({ length: 5 }, (_, i) => i < n ? '★' : '☆').join('');
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function renderChart(distribution) {
+            if (reviewChart) reviewChart.destroy();
+            const ctx = document.getElementById('review-chart');
+
+            reviewChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1 sao', '2 sao', '3 sao', '4 sao', '5 sao'],
+                    datasets: [{
+                        label: 'Số đánh giá',
+                        data: [1, 2, 3, 4, 5].map(star => Number(distribution[String(star)] || 0)),
+                        backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#20c997', '#198754'],
+                        borderRadius: 6,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                },
+            });
+        }
+
+        async function deleteReview(reviewId) {
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                alert('Bạn cần đăng nhập admin.');
+                return;
+            }
+            if (!confirm('Xác nhận xóa đánh giá này?')) return;
+
+            try {
+                const res = await fetch(`/api/reviews/admin/${reviewId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    alert(data.error || 'Xóa đánh giá thất bại.');
+                    return;
+                }
+                await loadReviews();
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        async function loadReviews() {
+            const token = localStorage.getItem('admin_token');
+            if (!token) return;
+
+            const body = document.getElementById('review-list-body');
+            body.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Đang tải...</td></tr>';
+
+            try {
+                const res = await fetch('/api/reviews/admin/', {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || 'Không tải được dữ liệu đánh giá');
+                }
+
+                const summary = data.summary || {};
+                const topBooks = Array.isArray(data.top_books) ? data.top_books : [];
+                const reviews = Array.isArray(data.results) ? data.results : [];
+
+                document.getElementById('review-total').textContent = String(summary.total_reviews || 0);
+                document.getElementById('review-avg').textContent = String(summary.avg_rating || 0);
+                document.getElementById('review-books').textContent = String(topBooks.length || 0);
+
+                renderChart(summary.rating_distribution || {});
+
+                if (!reviews.length) {
+                    body.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Chưa có đánh giá nào.</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = reviews.map((review) => `
+                    <tr>
+                        <td>${review.id}</td>
+                        <td>${review.book_id}</td>
+                        <td>${review.customer_id}</td>
+                        <td><span class="text-warning">${stars(review.rating)}</span></td>
+                        <td>${escapeHtml(review.comment || '')}</td>
+                        <td>${new Date(review.created_at).toLocaleString('vi-VN')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteReview(${review.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                body.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${error.message}</td></tr>`;
+            }
+        }
+
+        loadReviews();
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (CreateReviewView, BookReviewListView,
-                    CustomerReviewListView, BookAvgRatingView)
+                    CustomerReviewListView, BookAvgRatingView,
+                    AdminReviewListView, AdminReviewDetailView)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Review
@@ -17,5 +18,7 @@ urlpatterns = [
     path('reviews/books/<int:book_id>/', BookReviewListView.as_view(), name='book-reviews'),
     path('reviews/mine/', CustomerReviewListView.as_view(), name='my-reviews'),
     path('reviews/avg-ratings/', BookAvgRatingView.as_view(), name='avg-ratings'),
+    path('reviews/admin/', AdminReviewListView.as_view(), name='admin-review-list'),
+    path('reviews/admin/<int:review_id>/', AdminReviewDetailView.as_view(), name='admin-review-detail'),
     path('reviews/all-internal/', AllReviewsInternalView.as_view(), name='all-reviews-internal'),
 ]

@@ -164,6 +164,14 @@ def serve_customer_order_detail(request, order_id):
     return render(request, 'client/order-detail.html')
 
 
+def serve_customer_profile(request):
+    return render(request, 'client/profile.html')
+
+
+def serve_customer_agent(request):
+    return render(request, 'client/agent-chat.html')
+
+
 def serve_admin_frontend(request):
     return render(request, 'admin/dashboard.html')
 
@@ -194,6 +202,18 @@ def serve_admin_products_detail(request):
 
 def serve_admin_orders(request):
     return render(request, 'admin/order-list.html')
+
+
+def serve_admin_categories(request):
+    return render(request, 'admin/category-list.html')
+
+
+def serve_admin_reviews(request):
+    return render(request, 'admin/review-list.html')
+
+
+def serve_admin_profile(request):
+    return render(request, 'admin/profile.html')
 
 
 def serve_status_403(request):

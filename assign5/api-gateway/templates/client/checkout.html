@@ -931,6 +931,15 @@
                     loadProvinces()
                 ]);
 
+                // Filter cart items if specific items selected from cart page
+                const urlParams = new URLSearchParams(window.location.search);
+                const selectedItemsParam = urlParams.get('items');
+                if (selectedItemsParam) {
+                    const selectedIds = new Set(selectedItemsParam.split(',').map(id => parseInt(id)));
+                    cart.items = cart.items.filter(item => selectedIds.has(item.id));
+                    cart.total = cart.items.reduce((sum, item) => sum + parseFloat(item.item_total || 0), 0);
+                }
+
                 cartData = cart;
                 if (!Array.isArray(cartData.items) || cartData.items.length === 0) {
                     container.innerHTML = `
