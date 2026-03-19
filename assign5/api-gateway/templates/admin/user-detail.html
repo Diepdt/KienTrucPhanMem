@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Update User</title>
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body class="sb-nav-fixed">
+    {% include 'admin/layout/header.html' %}
+    <div id="layoutSidenav">
+        {% include 'admin/layout/sidenav.html' %}
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Manage Users</h1>
+                    <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item"><a href="/admin-panel/users/">Users</a></li><li class="breadcrumb-item active">Update User</li></ol>
+                    <div class="row col-6 mx-auto">
+                        <form onsubmit="event.preventDefault();updateUser();">
+                            <div class="mb-3"><label class="form-label">Fullname:</label><input id="u-name" type="text" class="form-control"></div>
+                            <div class="mb-3"><label class="form-label">Email:</label><input id="u-email" type="email" class="form-control"></div>
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Phone:</label><input id="u-phone" type="text" class="form-control"></div><div class="mb-3 col-6"><label class="form-label">Role:</label><select id="u-role" class="form-select"><option value="customer">Customer</option><option value="staff">Staff</option><option value="manager">Manager</option></select></div></div>
+                            <div class="mb-3"><label class="form-label">Address:</label><textarea id="u-address" class="form-control" rows="2"></textarea></div>
+                            <div id="user-detail-error" class="alert alert-danger d-none py-2 small"></div>
+                            <div style="display:flex; gap: 10px;"><button type="submit" class="btn btn-warning">Submit</button><a class="btn btn-secondary" href="/admin-panel/users/">Cancel</a></div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+            {% include 'admin/layout/footer.html' %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentType = 'customer';
+        let currentId = null;
+
+        function queryInfo() {
+            const url = new URL(window.location.href);
+            currentType = url.searchParams.get('type') || 'customer';
+            currentId = url.searchParams.get('id');
+        }
+
+        function showDetailUserError(message) {
+            const el = document.getElementById('user-detail-error');
+            el.textContent = message;
+            el.classList.remove('d-none');
+        }
+
+        async function loadUserDetail() {
+            queryInfo();
+            if (!currentId) {
+                showDetailUserError('Thiếu id người dùng trên URL.');
+                return;
+            }
+
+            let path = '';
+            if (currentType === 'staff') path = `/api/staffs/${currentId}/`;
+            else if (currentType === 'manager') path = `/api/managers/${currentId}/`;
+            else path = `/api/customers/${currentId}/`;
+
+            const res = await fetch(path);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                showDetailUserError(data.error || 'Không tải được thông tin user');
+                return;
+            }
+
+            document.getElementById('u-name').value = data.name || '';
+            document.getElementById('u-email').value = data.email || '';
+            document.getElementById('u-phone').value = data.phone || '';
+            document.getElementById('u-role').value = currentType;
+            document.getElementById('u-address').value = data.address || '';
+
+            if (currentType !== 'customer') {
+                document.getElementById('u-address').setAttribute('disabled', 'disabled');
+            }
+        }
+
+        async function updateUser() {
+            if (!currentId) return;
+            document.getElementById('user-detail-error').classList.add('d-none');
+
+            const payload = {
+                name: document.getElementById('u-name').value.trim(),
+                email: document.getElementById('u-email').value.trim(),
+                phone: document.getElementById('u-phone').value.trim(),
+            };
+
+            let path = '';
+            if (currentType === 'staff') {
+                path = `/api/staffs/${currentId}/`;
+                payload.role = 'staff';
+            } else if (currentType === 'manager') {
+                path = `/api/managers/${currentId}/`;
+            } else {
+                path = `/api/customers/${currentId}/`;
+                payload.address = document.getElementById('u-address').value.trim();
+            }
+
+            const res = await fetch(path, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                const msg = data.error || Object.values(data || {}).flat().join(' | ') || 'Cập nhật user thất bại';
+                showDetailUserError(msg);
+                return;
+            }
+
+            alert('Cập nhật thành công');
+            window.location.href = '/admin-panel/users/';
+        }
+
+        loadUserDetail();
+    </script>
+</body>
+</html>

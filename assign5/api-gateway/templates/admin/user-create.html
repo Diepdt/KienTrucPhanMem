@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Create User</title>
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body class="sb-nav-fixed">
+    {% include 'admin/layout/header.html' %}
+    <div id="layoutSidenav">
+        {% include 'admin/layout/sidenav.html' %}
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Manage Users</h1>
+                    <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item"><a href="/admin-panel/users/">Users</a></li><li class="breadcrumb-item active">Create user</li></ol>
+                    <div class="row col-6 mx-auto">
+                        <form onsubmit="event.preventDefault();createUser();">
+                            <div class="mb-3"><label class="form-label">Fullname:</label><input id="u-name" type="text" class="form-control" placeholder="Enter your name..." required></div>
+                            <div class="mb-3"><label class="form-label">Email:</label><input id="u-email" type="email" class="form-control" placeholder="name@gmail.com" required></div>
+                            <div class="mb-3"><label class="form-label">Password:</label><input id="u-password" type="password" class="form-control" required></div>
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Phone:</label><input id="u-phone" type="text" class="form-control"></div><div class="mb-3 col-6"><label class="form-label">Role:</label><select id="u-role" class="form-select"><option value="customer">Customer</option><option value="staff">Staff</option><option value="manager">Manager</option></select></div></div>
+                            <div class="mb-3"><label class="form-label">Address (customer):</label><textarea id="u-address" class="form-control" rows="2"></textarea></div>
+                            <div id="user-create-error" class="alert alert-danger d-none py-2 small"></div>
+                            <div class="mb-3"><button type="submit" class="btn btn-warning">Submit</button></div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+            {% include 'admin/layout/footer.html' %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showCreateUserError(message) {
+            const el = document.getElementById('user-create-error');
+            el.textContent = message;
+            el.classList.remove('d-none');
+        }
+
+        async function createUser() {
+            document.getElementById('user-create-error').classList.add('d-none');
+            const role = document.getElementById('u-role').value;
+
+            const payload = {
+                name: document.getElementById('u-name').value.trim(),
+                email: document.getElementById('u-email').value.trim(),
+                password: document.getElementById('u-password').value,
+                phone: document.getElementById('u-phone').value.trim(),
+            };
+
+            let path = '';
+            if (role === 'customer') {
+                path = '/api/customers/register/';
+                payload.address = document.getElementById('u-address').value.trim();
+            } else if (role === 'staff') {
+                path = '/api/staffs/';
+                payload.role = 'staff';
+            } else {
+                path = '/api/managers/';
+            }
+
+            const res = await fetch(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const msg = data.error || Object.values(data || {}).flat().join(' | ') || 'Tạo user thất bại';
+                showCreateUserError(msg);
+                return;
+            }
+
+            window.location.href = '/admin-panel/users/';
+        }
+    </script>
+</body>
+</html>

@@ -40,8 +40,8 @@ DATABASES = {
     }
 }
 
-BOOK_SERVICE_URL = os.environ.get('BOOK_SERVICE_URL', 'http://book-service:8005')
-CUSTOMER_SERVICE_URL = os.environ.get('CUSTOMER_SERVICE_URL', 'http://customer-service:8003')
+BOOK_SERVICE_URL     = os.environ.get('BOOK_SERVICE_URL',     'http://localhost:8005')
+CUSTOMER_SERVICE_URL = os.environ.get('CUSTOMER_SERVICE_URL', 'http://localhost:8003')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],

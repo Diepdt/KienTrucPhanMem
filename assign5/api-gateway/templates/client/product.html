@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BookStore - Sản phẩm</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .product-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: transform .15s ease, box-shadow .15s ease;
+            overflow: hidden;
+            background: #fff;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        }
+        .product-image {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+        }
+        .filter-section {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        .product-actions {
+            border-top: 1px solid #eef2f7;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0">Tất cả sản phẩm</h1>
+            <a href="/customer/" class="btn btn-outline-secondary">
+                <i class="fa fa-home me-2"></i>Về trang chủ
+            </a>
+        </div>
+
+        <div class="filter-section">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="search-title" placeholder="Tìm theo tên sách...">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="search-author" placeholder="Tìm theo tác giả...">
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="searchBooks()">
+                        <i class="fa fa-search me-2"></i>Tìm kiếm
+                    </button>
+                    <button class="btn btn-outline-secondary ms-2" onclick="resetSearch()">
+                        <i class="fa fa-refresh me-2"></i>Làm mới
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="product-list"></div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function formatPrice(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        function renderProducts(products) {
+            const list = document.getElementById('product-list');
+            if (!products.length) {
+                list.innerHTML = '<div class="col-12"><div class="alert alert-warning">Không có sản phẩm nào.</div></div>';
+                return;
+            }
+
+            list.innerHTML = products.map((product) => {
+                const cover = product.cover_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+                return `
+                    <div class="col-sm-6 col-lg-4 col-xl-3">
+                        <div class="product-card h-100">
+                            <img src="${cover}" class="product-image" alt="${product.title}">
+                            <div class="p-3 d-flex flex-column h-100">
+                                <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=${product.id}">${product.title}</a></h5>
+                                <p class="text-muted mb-2"><small><i class="fa fa-user me-1"></i>${product.author}</small></p>
+                                <div class="product-actions d-grid gap-2">
+                                    <p class="text-dark fs-6 fw-bold mb-1">${formatPrice(product.price)}</p>
+                                    <a href="/customer/product-detail/?id=${product.id}" class="btn btn-outline-secondary">
+                                        <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                    </a>
+                                    <button class="btn btn-primary w-100" onclick="addToCart(${product.id})">
+                                        <i class="fa fa-shopping-bag me-2"></i>Thêm vào giỏ hàng
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadProducts(filters = {}) {
+            const list = document.getElementById('product-list');
+            list.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải sản phẩm...</p></div></div>';
+
+            try {
+                let url = '/api/books/';
+                const params = new URLSearchParams();
+
+                if (filters.title) params.append('title', filters.title);
+                if (filters.author) params.append('author', filters.author);
+
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!res.ok || !Array.isArray(data)) {
+                    throw new Error('Không thể tải danh sách sản phẩm');
+                }
+
+                renderProducts(data);
+            } catch (error) {
+                list.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
+            }
+        }
+
+        function searchBooks() {
+            const title = document.getElementById('search-title').value.trim();
+            const author = document.getElementById('search-author').value.trim();
+
+            const filters = {};
+            if (title) filters.title = title;
+            if (author) filters.author = author;
+
+            loadProducts(filters);
+        }
+
+        function resetSearch() {
+            document.getElementById('search-title').value = '';
+            document.getElementById('search-author').value = '';
+            loadProducts();
+        }
+
+        async function addToCart(productId) {
+            const token = localStorage.getItem('customer_token');
+            if (!token) {
+                if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Đăng nhập ngay?')) {
+                    window.location.href = '/user/login/';
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/carts/add/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                    },
+                    body: JSON.stringify({ book_id: productId, quantity: 1 }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert('Lỗi: ' + (data.error || 'Không thể thêm vào giỏ hàng'));
+                    return;
+                }
+
+                // Show success notification
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                notification.innerHTML = `
+                    <i class="fa fa-check-circle me-2"></i>Đã thêm vào giỏ hàng thành công!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(notification);
+
+                // Auto remove notification after 3 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        // Search on Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInputs = document.querySelectorAll('#search-title, #search-author');
+            searchInputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchBooks();
+                    }
+                });
+            });
+        });
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            loadProducts();
+        });
+    </script>
+</body>
+</html>

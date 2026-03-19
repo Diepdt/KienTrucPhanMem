@@ -1,11 +1,55 @@
 from django.contrib import admin
 from django.urls import path, re_path
-from gateway.views import ProxyView, HealthCheckView
+from gateway.views import (
+    ProxyView,
+    HealthCheckView,
+    serve_portal,
+    serve_user_login,
+    serve_user_register,
+    serve_customer_frontend,
+    serve_customer_product,
+    serve_customer_product_detail,
+    serve_customer_cart,
+    serve_customer_checkout,
+    serve_customer_order_history,
+    serve_customer_order_detail,
+    serve_admin_frontend,
+    serve_admin_users,
+    serve_admin_users_create,
+    serve_admin_users_detail,
+    serve_admin_products,
+    serve_admin_products_create,
+    serve_admin_products_detail,
+    serve_admin_orders,
+    serve_status_403,
+    serve_status_404,
+    serve_status_500,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', HealthCheckView.as_view(), name='health-check'),
-    # Route tất cả request đến ProxyView
+    # Route tất cả API request đến ProxyView
     re_path(r'^api/(?P<path>.*)$', ProxyView.as_view(), name='proxy'),
-    path('', ProxyView.as_view(), {'path': ''}, name='root'),
+    path('', serve_portal, name='portal'),
+    path('user/login/', serve_user_login, name='user-login-page'),
+    path('user/register/', serve_user_register, name='user-register-page'),
+    path('customer/', serve_customer_frontend, name='customer-frontend'),
+    path('customer/product/', serve_customer_product, name='customer-product-page'),
+    path('customer/product-detail/', serve_customer_product_detail, name='customer-product-detail-page'),
+    path('customer/cart/', serve_customer_cart, name='customer-cart-page'),
+    path('customer/checkout/', serve_customer_checkout, name='customer-checkout-page'),
+    path('customer/orders/', serve_customer_order_history, name='customer-order-history-page'),
+    path('customer/orders/<int:order_id>/', serve_customer_order_detail, name='customer-order-detail-page'),
+    path('admin-panel/', serve_admin_frontend, name='admin-frontend'),
+    path('admin-panel/users/', serve_admin_users, name='admin-users-page'),
+    path('admin-panel/users/create/', serve_admin_users_create, name='admin-users-create-page'),
+    path('admin-panel/users/detail/', serve_admin_users_detail, name='admin-users-detail-page'),
+    path('admin-panel/products/', serve_admin_products, name='admin-products-page'),
+    path('admin-panel/products/create/', serve_admin_products_create, name='admin-products-create-page'),
+    path('admin-panel/products/detail/', serve_admin_products_detail, name='admin-products-detail-page'),
+    path('admin-panel/orders/', serve_admin_orders, name='admin-orders-page'),
+    path('status/403/', serve_status_403, name='status-403-page'),
+    path('status/404/', serve_status_404, name='status-404-page'),
+    path('status/500/', serve_status_500, name='status-500-page'),
 ]

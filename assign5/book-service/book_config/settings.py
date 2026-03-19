@@ -41,8 +41,10 @@ DATABASES = {
 }
 
 # URLs của service liên quan
-STAFF_SERVICE_URL = os.environ.get('STAFF_SERVICE_URL', 'http://staff-service:8001')
-CATALOG_SERVICE_URL = os.environ.get('CATALOG_SERVICE_URL', 'http://catalog-service:8004')
+# Docker: truyền qua env var (http://staff-service:8001)
+# Chạy thủ công: fallback về localhost
+STAFF_SERVICE_URL   = os.environ.get('STAFF_SERVICE_URL',   'http://localhost:8001')
+CATALOG_SERVICE_URL = os.environ.get('CATALOG_SERVICE_URL', 'http://localhost:8004')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],

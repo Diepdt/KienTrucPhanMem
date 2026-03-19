@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BookStore - Trang chủ</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .hero {
+            background: linear-gradient(135deg, #0d6efd 0%, #4e8ef7 100%);
+            color: #fff;
+            border-radius: 16px;
+        }
+        .product-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: transform .15s ease, box-shadow .15s ease;
+            overflow: hidden;
+            background: #fff;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        }
+        .product-image {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+        }
+        .product-actions {
+            border-top: 1px solid #eef2f7;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <section class="hero p-4 p-md-5 mb-4">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-7">
+                    <h1 class="display-6 fw-bold mb-3">Sách hay mỗi ngày, giá tốt mỗi giờ</h1>
+                    <p class="mb-4">Khám phá bộ sưu tập sách mới, mua nhanh, theo dõi đơn hàng và quản lý giỏ hàng ngay trên BookStore.</p>
+                    <a href="/customer/product/" class="btn btn-light text-primary fw-semibold px-4">Xem tất cả sản phẩm</a>
+                </div>
+                <div class="col-lg-5">
+                    <img class="img-fluid rounded-3 shadow-sm" src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1200&auto=format&fit=crop" alt="BookStore banner">
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 class="h4 mb-0">Sản phẩm nổi bật</h2>
+            </div>
+
+            <!-- Static products to ensure buttons show -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="product-card h-100">
+                        <img src="https://tse3.mm.bing.net/th/id/OIP.YQTMezYwN_ke_0T-smqKBQHaMH?rs=1&pid=ImgDetMain&o=7&rm=3" class="product-image" alt="An lạc từng bước chân">
+                        <div class="p-3 d-flex flex-column h-100">
+                            <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=1">An lạc từng bước chân</a></h5>
+                            <p class="text-muted mb-2"><small><i class="fa fa-user me-1"></i>Thích Nhất Hạnh</small></p>
+                            <div class="product-actions d-grid gap-2">
+                                <p class="text-dark fs-6 fw-bold mb-1">70,000 ₫</p>
+                                <a href="/customer/product-detail/?id=1" class="btn btn-outline-secondary">
+                                    <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                </a>
+                                <button class="btn btn-primary w-100" onclick="addToCart(1)">
+                                    <i class="fa fa-shopping-bag me-2"></i>Thêm vào giỏ hàng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="product-card h-100">
+                        <img src="https://cdn0.fahasa.com/media/flashmagazine/images/page_images/sapiens_luoc_su_loai_nguoi/2023_03_21_16_35_44_1-390x510.jpg" class="product-image" alt="Lược sử loài người">
+                        <div class="p-3 d-flex flex-column h-100">
+                            <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=2">Lược sử loài người</a></h5>
+                            <p class="text-muted mb-2"><small><i class="fa fa-user me-1"></i>Yuval Noah Harari</small></p>
+                            <div class="product-actions d-grid gap-2">
+                                <p class="text-dark fs-6 fw-bold mb-1">120,000 ₫</p>
+                                <a href="/customer/product-detail/?id=2" class="btn btn-outline-secondary">
+                                    <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                </a>
+                                <button class="btn btn-primary w-100" onclick="addToCart(2)">
+                                    <i class="fa fa-shopping-bag me-2"></i>Thêm vào giỏ hàng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="product-card h-100">
+                        <img src="https://tse4.mm.bing.net/th/id/OIP.Gpol5Hi-NHsqbGxs9GJgpAHaHa?rs=1&pid=ImgDetMain&o=7&rm=3" class="product-image" alt="Deep Work">
+                        <div class="p-3 d-flex flex-column h-100">
+                            <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=3">Deep Work - Làm ra làm, chơi ra chơi</a></h5>
+                            <p class="text-muted mb-2"><small><i class="fa fa-user me-1"></i>Cal Newport</small></p>
+                            <div class="product-actions d-grid gap-2">
+                                <p class="text-dark fs-6 fw-bold mb-1">100,000 ₫</p>
+                                <a href="/customer/product-detail/?id=3" class="btn btn-outline-secondary">
+                                    <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                </a>
+                                <button class="btn btn-primary w-100" onclick="addToCart(3)">
+                                    <i class="fa fa-shopping-bag me-2"></i>Thêm vào giỏ hàng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="product-card h-100">
+                        <img src="https://cdn0.fahasa.com/media/flashmagazine/images/page_images/giai_ma_hooc_mon_dopamin/2023_06_22_08_36_25_1-390x510.jpg" class="product-image" alt="Giải Mã Hoóc-Môn Dopamine">
+                        <div class="p-3 d-flex flex-column h-100">
+                            <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=4">Giải Mã Hoóc-Môn Dopamine</a></h5>
+                            <p class="text-muted mb-2"><small><i class="fa fa-user me-1"></i>Anna Lembke</small></p>
+                            <div class="product-actions d-grid gap-2">
+                                <p class="text-dark fs-6 fw-bold mb-1">80,000 ₫</p>
+                                <a href="/customer/product-detail/?id=4" class="btn btn-outline-secondary">
+                                    <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                </a>
+                                <button class="btn btn-primary w-100" onclick="addToCart(4)">
+                                    <i class="fa fa-shopping-bag me-2"></i>Thêm vào giỏ hàng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4" id="book-list" style="display: none;"></div>
+        </section>
+
+        {% include 'client/layout/feature.html' %}
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function formatPrice(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        async function addToCart(bookId) {
+            const token = localStorage.getItem('customer_token');
+            if (!token) {
+                if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Đăng nhập ngay?')) {
+                    window.location.href = '/user/login/';
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/carts/add/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                    },
+                    body: JSON.stringify({ book_id: bookId, quantity: 1 }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert('Lỗi: ' + (data.error || 'Không thể thêm vào giỏ hàng'));
+                    return;
+                }
+
+                // Show success notification
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                notification.innerHTML = `
+                    <i class="fa fa-check-circle me-2"></i>Đã thêm vào giỏ hàng thành công!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(notification);
+
+                // Auto remove notification after 3 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+        });
+    </script>
+</body>
+</html>

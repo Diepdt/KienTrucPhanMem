@@ -1,3 +1,5 @@
+name: assign5
+
 services:
 
   # ============================================================
@@ -5,7 +7,6 @@ services:
   # ============================================================
   mysql:
     image: mysql:8.0
-    container_name: bookstore-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
@@ -26,12 +27,11 @@ services:
   # ============================================================
   staff-service:
     build: ./staff-service
-    container_name: staff-service
     restart: always
     ports:
       - "8001:8001"
     environment:
-      DB_NAME: db_staff
+      DB_NAME: assign5_staff
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -46,12 +46,11 @@ services:
   # ============================================================
   manager-service:
     build: ./manager-service
-    container_name: manager-service
     restart: always
     ports:
       - "8002:8002"
     environment:
-      DB_NAME: db_manager
+      DB_NAME: assign5_manager
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -69,12 +68,11 @@ services:
   # ============================================================
   customer-service:
     build: ./customer-service
-    container_name: customer-service
     restart: always
     ports:
       - "8003:8003"
     environment:
-      DB_NAME: db_customer
+      DB_NAME: assign5_customer
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -90,12 +88,11 @@ services:
   # ============================================================
   catalog-service:
     build: ./catalog-service
-    container_name: catalog-service
     restart: always
     ports:
       - "8004:8004"
     environment:
-      DB_NAME: db_catalog
+      DB_NAME: assign5_catalog
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -110,12 +107,11 @@ services:
   # ============================================================
   book-service:
     build: ./book-service
-    container_name: book-service
     restart: always
     ports:
       - "8005:8005"
     environment:
-      DB_NAME: db_book
+      DB_NAME: assign5_book
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -136,12 +132,11 @@ services:
   # ============================================================
   cart-service:
     build: ./cart-service
-    container_name: cart-service
     restart: always
     ports:
       - "8006:8006"
     environment:
-      DB_NAME: db_cart
+      DB_NAME: assign5_cart
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -162,12 +157,11 @@ services:
   # ============================================================
   order-service:
     build: ./order-service
-    container_name: order-service
     restart: always
     ports:
       - "8007:8007"
     environment:
-      DB_NAME: db_order
+      DB_NAME: assign5_order
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -193,12 +187,11 @@ services:
   # ============================================================
   ship-service:
     build: ./ship-service
-    container_name: ship-service
     restart: always
     ports:
       - "8008:8008"
     environment:
-      DB_NAME: db_ship
+      DB_NAME: assign5_ship
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -213,12 +206,11 @@ services:
   # ============================================================
   pay-service:
     build: ./pay-service
-    container_name: pay-service
     restart: always
     ports:
       - "8009:8009"
     environment:
-      DB_NAME: db_pay
+      DB_NAME: assign5_pay
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -233,12 +225,11 @@ services:
   # ============================================================
   comment-rate-service:
     build: ./comment-rate-service
-    container_name: comment-rate-service
     restart: always
     ports:
       - "8010:8010"
     environment:
-      DB_NAME: db_comment
+      DB_NAME: assign5_comment
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -256,12 +247,11 @@ services:
   # ============================================================
   recommender-ai-service:
     build: ./recommender-ai-service
-    container_name: recommender-ai-service
     restart: always
     ports:
       - "8011:8011"
     environment:
-      DB_NAME: db_recommender
+      DB_NAME: assign5_recommender
       DB_USER: root
       DB_PASSWORD: "123456"
       DB_HOST: mysql
@@ -280,11 +270,59 @@ services:
         condition: service_started
 
   # ============================================================
+  # agent-service (port 8012) - AI Sales Agent
+  # ============================================================
+  agent-service:
+    build: ./agent-service
+    restart: always
+    ports:
+      - "8012:8012"
+    environment:
+      DB_NAME: assign5_agent
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "agent-secret-key-production"
+      BOOK_SERVICE_URL: "http://book-service:8005"
+      CART_SERVICE_URL: "http://cart-service:8006"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      book-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+
+  # ============================================================
+  # cloth-service (port 8013)
+  # ============================================================
+  cloth-service:
+    build: ./cloth-service
+    restart: always
+    ports:
+      - "8013:8013"
+    environment:
+      DB_NAME: assign5_cloth
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "cloth-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      staff-service:
+        condition: service_started
+
+  # ============================================================
   # api-gateway (port 8000) - Điểm vào duy nhất cho client
   # ============================================================
   api-gateway:
     build: ./api-gateway
-    container_name: api-gateway
     restart: always
     ports:
       - "8000:8000"
@@ -301,6 +339,8 @@ services:
       PAY_SERVICE_URL: "http://pay-service:8009"
       COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
       RECOMMENDER_SERVICE_URL: "http://recommender-ai-service:8011"
+      AGENT_SERVICE_URL: "http://agent-service:8012"
+      CLOTH_SERVICE_URL: "http://cloth-service:8013"
     depends_on:
       - staff-service
       - manager-service
@@ -313,6 +353,8 @@ services:
       - pay-service
       - comment-rate-service
       - recommender-ai-service
+      - agent-service
+      - cloth-service
 
 volumes:
   mysql_data:

@@ -20,6 +20,7 @@ class CartItem(models.Model):
     book_id = models.IntegerField()
     book_title = models.CharField(max_length=255, blank=True)   # snapshot
     book_author = models.CharField(max_length=255, blank=True)  # snapshot
+    book_cover_url = models.URLField(blank=True)  # snapshot của book cover
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField(default=1)
 

@@ -28,7 +28,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'gateway_config.urls'
-TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [],
+TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'],
                'APP_DIRS': True, 'OPTIONS': {'context_processors': [
                    'django.template.context_processors.request',
                    'django.contrib.auth.context_processors.auth',
@@ -55,6 +55,8 @@ SHIP_SERVICE_URL = os.environ.get('SHIP_SERVICE_URL', 'http://ship-service:8008'
 PAY_SERVICE_URL = os.environ.get('PAY_SERVICE_URL', 'http://pay-service:8009')
 COMMENT_SERVICE_URL = os.environ.get('COMMENT_SERVICE_URL', 'http://comment-rate-service:8010')
 RECOMMENDER_SERVICE_URL = os.environ.get('RECOMMENDER_SERVICE_URL', 'http://recommender-ai-service:8011')
+AGENT_SERVICE_URL       = os.environ.get('AGENT_SERVICE_URL',       'http://agent-service:8012')
+CLOTH_SERVICE_URL       = os.environ.get('CLOTH_SERVICE_URL',       'http://cloth-service:8013')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],

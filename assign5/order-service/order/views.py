@@ -207,6 +207,21 @@ class OrderListView(APIView):
         return Response(OrderSerializer(orders, many=True).data)
 
 
+class OrderHistoryView(APIView):
+    """Lịch sử đơn hàng của khách hàng (alias rõ nghĩa cho frontend)."""
+
+    def get(self, request):
+        auth = request.headers.get('Authorization', '')
+        valid, customer = verify_customer_token(auth)
+        if not valid:
+            return Response({'error': 'Unauthorized'}, status=401)
+        orders = Order.objects.filter(customer_id=customer['id']).order_by('-created_at')
+        return Response({
+            'count': orders.count(),
+            'results': OrderSerializer(orders, many=True).data
+        })
+
+
 class CustomerOrdersInternalView(APIView):
     """Lấy đơn hàng của khách hàng - nội bộ (không cần auth, dành cho recommender)."""
 

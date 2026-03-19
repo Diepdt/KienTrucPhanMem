@@ -96,6 +96,7 @@ class AddToCartView(APIView):
             defaults={
                 'book_title': book['title'],
                 'book_author': book['author'],
+                'book_cover_url': book.get('cover_url', ''),
                 'price': book['price'],
                 'quantity': quantity,
             }
@@ -170,3 +171,50 @@ class GetCartByCustomerInternalView(APIView):
             return Response(CartSerializer(cart).data)
         except Cart.DoesNotExist:
             return Response({'error': 'Giỏ hàng không tồn tại'}, status=404)
+
+
+class AddToCartInternalView(APIView):
+    """
+    Thêm sách vào giỏ hàng (internal) – dành cho agent-service gọi.
+    Không yêu cầu xác thực customer token; xác thực service-to-service
+    được thực hiện bởi network layer (Docker internal network).
+
+    POST /api/carts/add-internal/
+    Body: { "customer_id": int, "book_id": int, "quantity": int }
+    """
+
+    def post(self, request):
+        customer_id = request.data.get('customer_id')
+        book_id     = request.data.get('book_id')
+        quantity    = int(request.data.get('quantity', 1))
+
+        if not customer_id:
+            return Response({'error': 'customer_id bắt buộc'}, status=400)
+        if not book_id:
+            return Response({'error': 'book_id bắt buộc'}, status=400)
+        if quantity < 1:
+            return Response({'error': 'quantity phải lớn hơn 0'}, status=400)
+
+        book = get_book_info(book_id)
+        if not book:
+            return Response({'error': 'Sách không tồn tại hoặc không khả dụng'}, status=404)
+        if book.get('stock', 0) < quantity:
+            return Response({'error': 'Sách không đủ số lượng trong kho'}, status=400)
+
+        cart, _ = Cart.objects.get_or_create(customer_id=customer_id)
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            book_id=book_id,
+            defaults={
+                'book_title':  book['title'],
+                'book_author': book['author'],
+                'book_cover_url': book.get('cover_url', ''),
+                'price':       book['price'],
+                'quantity':    quantity,
+            },
+        )
+        if not created:
+            cart_item.quantity += quantity
+            cart_item.save()
+
+        return Response(CartSerializer(cart).data, status=200)

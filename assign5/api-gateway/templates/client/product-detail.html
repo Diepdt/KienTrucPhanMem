@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BookStore - Chi tiết sản phẩm</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .product-image {
+            width: 100%;
+            max-height: 460px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        .product-box {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <nav class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/customer/">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/customer/product/">Sản phẩm</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Chi tiết</li>
+            </ol>
+        </nav>
+
+        <div class="row g-4" id="product-detail-container">
+            <div class="col-lg-5">
+                <div class="product-box">
+                    <img id="product-cover" src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop" class="product-image" alt="Book cover">
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="product-box h-100">
+                    <h1 class="fw-bold mb-2" id="product-title">Đang tải...</h1>
+                    <p class="text-muted mb-3"><i class="fa fa-user me-2"></i>Tác giả: <span id="product-author">...</span></p>
+                    <h3 class="text-primary fw-bold mb-3" id="product-price">...</h3>
+
+                    <div class="mb-3">
+                        <span class="badge text-bg-light border me-2"><i class="fa fa-box me-1"></i>Kho: <span id="product-stock">0</span></span>
+                        <span class="badge text-bg-light border"><i class="fa fa-tags me-1"></i>Danh mục: <span id="product-category">...</span></span>
+                        <span class="badge text-bg-light border" id="product-isbn-badge" style="display: none;"><i class="fa fa-barcode me-1"></i>ISBN: <span id="product-isbn">...</span></span>
+                    </div>
+
+                    <p class="mb-4" id="product-short-desc">...</p>
+
+                    <div class="mb-4">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <button id="btn-add-cart" class="btn btn-primary w-100" onclick="addCurrentToCart()">
+                                    <i class="fa fa-shopping-bag me-2"></i>Thêm vào giỏ hàng
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="/customer/cart/" class="btn btn-outline-success w-100">
+                                    <i class="fa fa-shopping-cart me-2"></i>Xem giỏ hàng
+                                </a>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <a href="/customer/product/" class="btn btn-outline-secondary">
+                                <i class="fa fa-arrow-left me-2"></i>Quay lại danh sách
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h4><i class="fa fa-info-circle me-2"></i>Mô tả chi tiết</h4>
+                    <div class="border rounded p-3 bg-light">
+                        <p class="mb-0" id="product-description">...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentBookId = null;
+
+        function formatPrice(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        function getBookIdFromQuery() {
+            const url = new URL(window.location.href);
+            return url.searchParams.get('id');
+        }
+
+        async function loadBookDetail() {
+            const container = document.getElementById('product-detail-container');
+
+            try {
+                let bookId = getBookIdFromQuery();
+
+                if (!bookId) {
+                    container.innerHTML = '<div class="col-12"><div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>Không có thông tin sản phẩm để hiển thị. <a href="/customer/product/" class="alert-link">Quay lại danh sách sản phẩm</a></div></div>';
+                    return;
+                }
+
+                // Show loading state
+                container.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải chi tiết sản phẩm...</p></div></div>';
+
+                const res = await fetch(`/api/books/${bookId}/`);
+                const book = await res.json();
+
+                if (!res.ok) {
+                    container.innerHTML = '<div class="col-12"><div class="alert alert-danger"><i class="fa fa-times-circle me-2"></i>Không thể tải chi tiết sản phẩm. <a href="/customer/product/" class="alert-link">Quay lại danh sách</a></div></div>';
+                    return;
+                }
+
+                // Restore the original HTML structure and populate with data
+                container.innerHTML = `
+                    <div class="col-lg-5">
+                        <div class="product-box">
+                            <img id="product-cover" src="${book.cover_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'}" class="product-image" alt="${book.title}">
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="product-box h-100">
+                            <h1 class="fw-bold mb-2" id="product-title">${book.title || 'N/A'}</h1>
+                            <p class="text-muted mb-3"><i class="fa fa-user me-2"></i>Tác giả: <span id="product-author">${book.author || 'N/A'}</span></p>
+                            <h3 class="text-primary fw-bold mb-3" id="product-price">${formatPrice(book.price)}</h3>
+
+                            <div class="mb-3">
+                                <span class="badge text-bg-${book.stock > 0 ? 'success' : 'danger'} me-2"><i class="fa fa-box me-1"></i>Kho: <span id="product-stock">${book.stock}</span></span>
+                                <span class="badge text-bg-light border me-2"><i class="fa fa-tags me-1"></i>Danh mục: <span id="product-category">${book.category_name || 'Chưa phân loại'}</span></span>
+                                ${book.isbn ? `<span class="badge text-bg-light border"><i class="fa fa-barcode me-1"></i>ISBN: <span id="product-isbn">${book.isbn}</span></span>` : ''}
+                            </div>
+
+                            <p class="mb-4" id="product-short-desc">${(book.description || '').slice(0, 200) || 'Không có mô tả ngắn.'}${book.description && book.description.length > 200 ? '...' : ''}</p>
+
+                            <div class="mb-4">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <button id="btn-add-cart" class="btn btn-primary w-100" onclick="addCurrentToCart()" ${book.stock <= 0 ? 'disabled' : ''}>
+                                            <i class="fa fa-shopping-bag me-2"></i>${book.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <a href="/customer/cart/" class="btn btn-outline-success w-100">
+                                            <i class="fa fa-shopping-cart me-2"></i>Xem giỏ hàng
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="/customer/product/" class="btn btn-outline-secondary">
+                                        <i class="fa fa-arrow-left me-2"></i>Quay lại danh sách
+                                    </a>
+                                </div>
+                            </div>
+
+                            <hr>
+                            <h4><i class="fa fa-info-circle me-2"></i>Mô tả chi tiết</h4>
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-0" id="product-description">${book.description || 'Không có mô tả chi tiết.'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                currentBookId = book.id;
+                document.title = `BookStore - ${book.title}`;
+
+            } catch (error) {
+                container.innerHTML = `<div class="col-12"><div class="alert alert-danger"><i class="fa fa-exclamation-triangle me-2"></i>Lỗi tải sản phẩm: ${error.message}</div></div>`;
+            }
+        }
+
+        async function addCurrentToCart() {
+            if (!currentBookId) return;
+
+            const token = localStorage.getItem('customer_token');
+            if (!token) {
+                if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Đăng nhập ngay?')) {
+                    window.location.href = '/user/login/';
+                }
+                return;
+            }
+
+            const button = document.getElementById('btn-add-cart');
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Đang thêm...';
+
+            try {
+                const res = await fetch('/api/carts/add/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                    },
+                    body: JSON.stringify({ book_id: currentBookId, quantity: 1 }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert('Lỗi: ' + (data.error || 'Không thể thêm vào giỏ hàng'));
+                    return;
+                }
+
+                // Show success message
+                button.innerHTML = '<i class="fa fa-check me-2"></i>Đã thêm!';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-success');
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-primary');
+                    button.disabled = false;
+                }, 2000);
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            } finally {
+                if (button.disabled) {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                }
+            }
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            loadBookDetail();
+        });
+    </script>
+</body>
+</html>

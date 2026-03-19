@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings as django_settings
-from django.http import StreamingHttpResponse, HttpResponse
+from django.http import HttpResponse
+from django.shortcuts import render, redirect
 import requests as http_requests
 import logging
 
@@ -22,6 +23,8 @@ ROUTE_TABLE = [
     ('payment/', django_settings.PAY_SERVICE_URL),
     ('reviews/', django_settings.COMMENT_SERVICE_URL),
     ('recommendations/', django_settings.RECOMMENDER_SERVICE_URL),
+    ('clothes/', django_settings.CLOTH_SERVICE_URL),
+    ('agent/',            django_settings.AGENT_SERVICE_URL),
 ]
 
 
@@ -51,6 +54,7 @@ class ProxyView(APIView):
     - /api/payment/*        → pay-service:8009
     - /api/reviews/*        → comment-rate-service:8010
     - /api/recommendations/* → recommender-ai-service:8011
+    - /api/clothes/*        → cloth-service:8013
     """
 
     def _proxy(self, request, path):
@@ -120,6 +124,90 @@ class ProxyView(APIView):
         return self._proxy(request, path)
 
 
+def serve_portal(request):
+    return redirect('user-login-page')
+
+
+def serve_user_login(request):
+    return render(request, 'user/login.html')
+
+
+def serve_user_register(request):
+    return render(request, 'user/register.html')
+
+
+def serve_customer_frontend(request):
+    return render(request, 'client/home.html')
+
+
+def serve_customer_product(request):
+    return render(request, 'client/product.html')
+
+
+def serve_customer_product_detail(request):
+    return render(request, 'client/product-detail.html')
+
+
+def serve_customer_cart(request):
+    return render(request, 'client/cart.html')
+
+
+def serve_customer_checkout(request):
+    return render(request, 'client/checkout.html')
+
+
+def serve_customer_order_history(request):
+    return render(request, 'client/order-history.html')
+
+
+def serve_customer_order_detail(request, order_id):
+    return render(request, 'client/order-detail.html')
+
+
+def serve_admin_frontend(request):
+    return render(request, 'admin/dashboard.html')
+
+
+def serve_admin_users(request):
+    return render(request, 'admin/user-list.html')
+
+
+def serve_admin_users_create(request):
+    return render(request, 'admin/user-create.html')
+
+
+def serve_admin_users_detail(request):
+    return render(request, 'admin/user-detail.html')
+
+
+def serve_admin_products(request):
+    return render(request, 'admin/product-list.html')
+
+
+def serve_admin_products_create(request):
+    return render(request, 'admin/product-create.html')
+
+
+def serve_admin_products_detail(request):
+    return render(request, 'admin/product-detail.html')
+
+
+def serve_admin_orders(request):
+    return render(request, 'admin/order-list.html')
+
+
+def serve_status_403(request):
+    return render(request, 'status/403.html', status=403)
+
+
+def serve_status_404(request):
+    return render(request, 'status/404.html', status=404)
+
+
+def serve_status_500(request):
+    return render(request, 'status/500.html', status=500)
+
+
 class HealthCheckView(APIView):
     """Kiểm tra trạng thái tất cả services."""
 
@@ -136,6 +224,7 @@ class HealthCheckView(APIView):
             'pay-service': django_settings.PAY_SERVICE_URL,
             'comment-rate-service': django_settings.COMMENT_SERVICE_URL,
             'recommender-ai-service': django_settings.RECOMMENDER_SERVICE_URL,
+            'cloth-service': django_settings.CLOTH_SERVICE_URL,
         }
         status_info = {}
         for name, url in SERVICES.items():

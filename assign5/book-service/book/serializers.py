@@ -13,3 +13,9 @@ class BookCreateSerializer(serializers.ModelSerializer):
         model = Book
         fields = ['title', 'author', 'isbn', 'price', 'stock',
                   'category_id', 'description', 'cover_url']
+
+    def validate_isbn(self, value):
+        """Chuyển chuỗi rỗng thành None để tránh lỗi unique constraint."""
+        if value == '' or value is None:
+            return None
+        return value

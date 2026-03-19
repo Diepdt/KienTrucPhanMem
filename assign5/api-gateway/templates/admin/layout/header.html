@@ -1,0 +1,63 @@
+<nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
+    <a class="navbar-brand ps-3" href="/admin-panel/">Laptopshop</a>
+    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" type="button">
+        <i class="fas fa-bars"></i>
+    </button>
+    <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
+        <span style="color: white;" id="admin-welcome">Welcome, Admin</span>
+    </form>
+    <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user fa-fw"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                <li><a class="dropdown-item" href="/">Về trang chủ</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><button class="dropdown-item" type="button" onclick="adminLogout()">Đăng xuất</button></li>
+            </ul>
+        </li>
+    </ul>
+</nav>
+
+<script>
+    function getAdminAuth() {
+        const token = localStorage.getItem('admin_token');
+        const info = JSON.parse(localStorage.getItem('admin_info') || '{}');
+        const type = localStorage.getItem('admin_type') || '';
+        return { token, info, type };
+    }
+
+    function ensureAdminAuth() {
+        const { token, info, type } = getAdminAuth();
+        if (!token) {
+            window.location.href = '/user/login/';
+            return;
+        }
+        const name = info.name || info.email || 'Admin';
+        const typeLabel = type ? ` (${type})` : '';
+        const welcome = document.getElementById('admin-welcome');
+        if (welcome) {
+            welcome.textContent = `Welcome, ${name}${typeLabel}`;
+        }
+    }
+
+    async function adminLogout() {
+        const { token, type } = getAdminAuth();
+        const logoutPath = type === 'staff' ? '/api/staff/logout/' : null;
+        if (token && logoutPath) {
+            try {
+                await fetch(logoutPath, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+            } catch {}
+        }
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_info');
+        localStorage.removeItem('admin_type');
+        window.location.href = '/user/login/';
+    }
+
+    ensureAdminAuth();
+</script>
