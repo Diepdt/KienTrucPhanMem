@@ -38,7 +38,12 @@ Bạn có muốn mình tìm kiếm một cuốn sách nào đó không? 😊"
 - Khách hỏi về một cuốn sách hoặc tác giả cụ thể.
 - Khách yêu cầu tìm sách theo thể loại / chủ đề.
 - Khách muốn biết giá, còn hàng, hay mô tả của một đầu sách.
-- Trước khi gọi `add_book_to_cart` nếu chưa có `book_id`.
+- Trước khi gọi `get_book_detail` hoặc `add_book_to_cart` nếu chưa có `book_id`.
+
+### Khi nào gọi `get_book_detail`
+- Khách muốn xem chi tiết một sản phẩm cụ thể theo ID.
+- Khách hỏi nội dung/mô tả/đánh giá của một cuốn sách đã xác định được `book_id`.
+- Ưu tiên gọi tool này khi khách nói: "xem thông tin sách id ...", "nội dung sách ...", "đánh giá sách ...".
 
 ### Khi nào gọi `add_book_to_cart`
 - Khách xác nhận rõ ràng ("Thêm vào giỏ", "Mua cuốn này", "Cho mình lấy X cuốn") \
@@ -62,4 +67,9 @@ Khách: "Thêm cuốn Mắt Biếc vào giỏ giúp mình"
 → Gọi `search_books(query="Mắt Biếc")` để lấy `book_id`
 → Gọi `add_book_to_cart(user_id=<id>, book_id=<id>, quantity=1)`
 → Xác nhận thành công với khách.
+
+**Xem chi tiết sách:**
+Khách: "Cho mình xem thông tin sách id 12"
+→ Gọi `get_book_detail(book_id=12)`
+→ Trình bày: tên sách, tác giả, giá, thể loại, mô tả và điểm đánh giá trung bình.
 """

@@ -41,7 +41,7 @@
                                         <th>Rating</th>
                                         <th>Comment</th>
                                         <th>Created</th>
-                                        <th>Action</th>
+                                        <th>Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody id="review-list-body"></tbody>
@@ -56,8 +56,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        if (typeof adminRequireManagerPage === 'function' && !adminRequireManagerPage()) {
-            throw new Error('Forbidden page for staff');
+        if (typeof ensureAdminAuth === 'function') {
+            ensureAdminAuth();
         }
 
         let reviewChart = null;
@@ -99,30 +99,6 @@
             });
         }
 
-        async function deleteReview(reviewId) {
-            const token = localStorage.getItem('admin_token');
-            if (!token) {
-                alert('Bạn cần đăng nhập admin.');
-                return;
-            }
-            if (!confirm('Xác nhận xóa đánh giá này?')) return;
-
-            try {
-                const res = await fetch(`/api/reviews/admin/${reviewId}/`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Token ${token}` }
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                    alert(data.error || 'Xóa đánh giá thất bại.');
-                    return;
-                }
-                await loadReviews();
-            } catch (error) {
-                alert('Lỗi kết nối: ' + error.message);
-            }
-        }
-
         async function loadReviews() {
             const token = localStorage.getItem('admin_token');
             if (!token) return;
@@ -162,11 +138,7 @@
                         <td><span class="text-warning">${stars(review.rating)}</span></td>
                         <td>${escapeHtml(review.comment || '')}</td>
                         <td>${new Date(review.created_at).toLocaleString('vi-VN')}</td>
-                        <td>
-                            <button class="btn btn-sm btn-danger" onclick="deleteReview(${review.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
+                        <td><span class="badge bg-secondary">Chỉ xem</span></td>
                     </tr>
                 `).join('');
             } catch (error) {

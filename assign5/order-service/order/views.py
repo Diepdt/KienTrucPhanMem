@@ -4,7 +4,8 @@ from rest_framework import status
 from django.conf import settings as django_settings
 from django.db.models import Sum
 from django.utils import timezone
-from datetime import timedelta
+from django.utils.dateparse import parse_date
+from datetime import timedelta, datetime, time
 import requests as http_requests
 import logging
 
@@ -37,6 +38,31 @@ def verify_manager_token(auth_header):
             return data.get('valid', False), data.get('manager')
     except Exception as e:
         logger.error(f"verify_manager error: {e}")
+    return False, None
+
+def verify_staff_token(auth_header):
+    try:
+        resp = http_requests.get(
+            f"{django_settings.STAFF_SERVICE_URL}/api/staff/verify-token/",
+            headers={'Authorization': auth_header}, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('valid', False), data.get('staff')
+    except Exception as e:
+        logger.error(f"verify_staff error: {e}")
+    return False, None
+
+
+def verify_admin_token(auth_header):
+    """Verify manager or staff token."""
+    valid_manager, manager = verify_manager_token(auth_header)
+    if valid_manager:
+        return True, manager
+    
+    valid_staff, staff = verify_staff_token(auth_header)
+    if valid_staff:
+        return True, staff
+    
     return False, None
 
 
@@ -120,6 +146,25 @@ def clear_cart(customer_id):
             timeout=5)
     except Exception as e:
         logger.error(f"clear_cart error: {e}")
+
+
+def get_book_categories(book_ids):
+    category_map = {}
+    for book_id in book_ids:
+        try:
+            resp = http_requests.get(
+                f"{django_settings.BOOK_SERVICE_URL}/api/books/{book_id}/",
+                timeout=5
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                category_map[book_id] = (data.get('category_name') or '').strip() or 'Chưa phân loại'
+            else:
+                category_map[book_id] = 'Chưa phân loại'
+        except Exception as e:
+            logger.error(f"get_book_categories error for book_id={book_id}: {e}")
+            category_map[book_id] = 'Chưa phân loại'
+    return category_map
 
 
 class CreateOrderView(APIView):
@@ -274,11 +319,11 @@ class OrderDetailView(APIView):
 
 
 class AdminOrderListView(APIView):
-    """Danh sách đơn hàng cho manager/admin."""
+    """Danh sách đơn hàng cho manager/staff/admin."""
 
     def get(self, request):
         auth = request.headers.get('Authorization', '')
-        valid, manager = verify_manager_token(auth)
+        valid, admin = verify_admin_token(auth)
         if not valid:
             return Response({'error': 'Unauthorized'}, status=401)
 
@@ -298,7 +343,7 @@ class AdminOrderListView(APIView):
         orders = Order.objects.all().prefetch_related('items').order_by(ordering)
 
         return Response({
-            'actor': {'id': manager.get('id'), 'role': 'manager'},
+            'actor': {'id': admin.get('id'), 'role': admin.get('role', 'admin')},
             'sort': {'sort_by': sort_field, 'order': 'asc' if order_dir == 'asc' else 'desc'},
             'count': orders.count(),
             'results': OrderSerializer(orders, many=True).data,
@@ -306,13 +351,13 @@ class AdminOrderListView(APIView):
 
 
 class AdminOrderDetailView(APIView):
-    """Chi tiết/cập nhật trạng thái đơn hàng cho manager/admin."""
+    """Chi tiết/cập nhật trạng thái đơn hàng cho manager/staff/admin."""
 
     ALLOWED_STATUS = {'pending', 'confirmed', 'shipping', 'delivered'}
 
     def get(self, request, order_id):
         auth = request.headers.get('Authorization', '')
-        valid, _manager = verify_manager_token(auth)
+        valid, _admin = verify_admin_token(auth)
         if not valid:
             return Response({'error': 'Unauthorized'}, status=401)
 
@@ -324,7 +369,7 @@ class AdminOrderDetailView(APIView):
 
     def patch(self, request, order_id):
         auth = request.headers.get('Authorization', '')
-        valid, _manager = verify_manager_token(auth)
+        valid, _admin = verify_admin_token(auth)
         if not valid:
             return Response({'error': 'Unauthorized'}, status=401)
 
@@ -346,13 +391,15 @@ class AdminOrderDetailView(APIView):
 
 
 class AdminOrderSummaryView(APIView):
-    """Thống kê đơn hàng/doanh thu cho manager dashboard."""
+    """Thống kê đơn hàng/doanh thu cho manager/staff dashboard."""
 
     def get(self, request):
         auth = request.headers.get('Authorization', '')
-        valid, manager = verify_manager_token(auth)
+        valid, admin = verify_admin_token(auth)
         if not valid:
             return Response({'error': 'Unauthorized'}, status=401)
+
+        role = (admin.get('role') or admin.get('type') or '').lower()
 
         orders = Order.objects.all()
         total_orders = orders.count()
@@ -374,8 +421,74 @@ class AdminOrderSummaryView(APIView):
         recent_orders_count = recent_orders_qs.count()
         recent_orders_revenue = recent_orders_qs.aggregate(total=Sum('total_amount')).get('total') or 0
 
-        return Response({
-            'actor': {'id': manager.get('id'), 'role': 'manager'},
+        start_date_raw = request.query_params.get('start_date')
+        end_date_raw = request.query_params.get('end_date')
+        revenue_range = None
+
+        if start_date_raw or end_date_raw:
+            is_manager, _manager = verify_manager_token(auth)
+            if not is_manager:
+                return Response(
+                    {'error': 'Chỉ manager mới được dùng thống kê doanh thu theo khoảng thời gian.'},
+                    status=403
+                )
+
+            start_date = parse_date(start_date_raw) if start_date_raw else None
+            end_date = parse_date(end_date_raw) if end_date_raw else None
+
+            if (start_date_raw and not start_date) or (end_date_raw and not end_date):
+                return Response(
+                    {'error': 'Định dạng ngày không hợp lệ. Dùng YYYY-MM-DD.'},
+                    status=400
+                )
+
+            if start_date and end_date and start_date > end_date:
+                return Response(
+                    {'error': 'start_date phải nhỏ hơn hoặc bằng end_date.'},
+                    status=400
+                )
+
+            range_orders = orders.filter(status='delivered').prefetch_related('items')
+            if start_date:
+                start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+                range_orders = range_orders.filter(created_at__gte=start_dt)
+            if end_date:
+                end_dt = timezone.make_aware(datetime.combine(end_date, time.max))
+                range_orders = range_orders.filter(created_at__lte=end_dt)
+
+            line_items = []
+            book_ids = set()
+            for order in range_orders:
+                for item in order.items.all():
+                    amount = float(item.price) * int(item.quantity)
+                    line_items.append((item.book_id, amount))
+                    book_ids.add(item.book_id)
+
+            book_category_map = get_book_categories(book_ids)
+            category_totals = {}
+            for book_id, amount in line_items:
+                category_name = book_category_map.get(book_id, 'Chưa phân loại')
+                category_totals[category_name] = category_totals.get(category_name, 0.0) + amount
+
+            sorted_categories = sorted(
+                category_totals.items(),
+                key=lambda pair: pair[1],
+                reverse=True
+            )
+
+            revenue_range = {
+                'start_date': start_date_raw,
+                'end_date': end_date_raw,
+                'total_orders': range_orders.count(),
+                'total_revenue': round(sum(category_totals.values()), 2),
+                'by_category': [
+                    {'category_name': name, 'revenue': round(value, 2)}
+                    for name, value in sorted_categories
+                ]
+            }
+
+        response_data = {
+            'actor': {'id': admin.get('id'), 'role': admin.get('role', 'admin')},
             'summary': {
                 'total_orders': total_orders,
                 'delivered_orders': delivered_orders,
@@ -388,4 +501,9 @@ class AdminOrderSummaryView(APIView):
                 'last_30_days_orders': recent_orders_count,
                 'last_30_days_revenue': float(recent_orders_revenue),
             }
-        })
+        }
+
+        if revenue_range is not None:
+            response_data['revenue_range'] = revenue_range
+
+        return Response(response_data)

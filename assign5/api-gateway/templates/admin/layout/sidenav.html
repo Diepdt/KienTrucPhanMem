@@ -41,10 +41,8 @@
         const role = localStorage.getItem('admin_type') || '';
         if (role === 'staff') {
             const usersLink = document.getElementById('nav-admin-users');
-            const ordersLink = document.getElementById('nav-admin-orders');
             const reviewsLink = document.getElementById('nav-admin-reviews');
             if (usersLink) usersLink.classList.add('d-none');
-            if (ordersLink) ordersLink.classList.add('d-none');
             if (reviewsLink) reviewsLink.classList.add('d-none');
         }
     })();

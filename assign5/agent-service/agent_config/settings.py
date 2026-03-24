@@ -72,6 +72,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 # ─── Downstream service base URLs ─────────────────────────────────────────────
 BOOK_SERVICE_URL = os.environ.get('BOOK_SERVICE_URL', 'http://localhost:8005')
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://localhost:8006')
+COMMENT_SERVICE_URL = os.environ.get('COMMENT_SERVICE_URL', 'http://localhost:8010')
+RECOMMENDER_SERVICE_URL = os.environ.get('RECOMMENDER_SERVICE_URL', 'http://localhost:8011')
 
 # ─── Gemini API Configuration (Google AI Studio – miễn phí) ─────────────────
 # Lấy key tại: https://aistudio.google.com/app/apikey

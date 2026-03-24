@@ -6,6 +6,7 @@ Module 1 – Tool Functions (Công cụ nội bộ cho Agent)
 Gồm:
   • TOOL_DEFINITIONS  – JSON Schema theo chuẩn OpenAI function-calling.
   • search_books()    – Wrapper gọi book-service để tìm kiếm sách.
+    • get_book_detail() – Lấy thông tin chi tiết sách + đánh giá.
   • add_book_to_cart()– Wrapper gọi cart-service để thêm sách vào giỏ.
   • TOOL_FUNCTION_MAP – Ánh xạ tên hàm → callable để Execution Loop dùng.
 """
@@ -53,6 +54,26 @@ TOOL_DEFINITIONS = [
                     },
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_book_detail",
+            "description": (
+                "Lấy thông tin chi tiết một cuốn sách theo book_id, bao gồm mô tả, "
+                "thể loại, giá, tồn kho và điểm đánh giá trung bình."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "book_id": {
+                        "type": "integer",
+                        "description": "ID của cuốn sách cần xem chi tiết.",
+                    },
+                },
+                "required": ["book_id"],
             },
         },
     },
@@ -110,30 +131,38 @@ def search_books(query: str, category: str = "") -> str:
         seen_ids: set = set()
         results: list = []
 
+        def append_books(payload):
+            books = payload.get("results", []) if isinstance(payload, dict) else payload
+            if not isinstance(books, list):
+                return
+            for book in books:
+                if isinstance(book, dict) and book.get("id") not in seen_ids:
+                    results.append(book)
+                    seen_ids.add(book["id"])
+
+        # Tìm theo search chung trước (bao phủ title/author tốt hơn)
+        if query:
+            resp = requests.get(base_url, params={"search": query}, timeout=10)
+            resp.raise_for_status()
+            append_books(resp.json())
+
         # Tìm theo title
         if query:
             resp = requests.get(base_url, params={"title": query}, timeout=10)
             resp.raise_for_status()
-            for book in resp.json():
-                if book["id"] not in seen_ids:
-                    results.append(book)
-                    seen_ids.add(book["id"])
+            append_books(resp.json())
 
         # Tìm theo author (loại trùng theo id)
         if query:
             resp = requests.get(base_url, params={"author": query}, timeout=10)
             resp.raise_for_status()
-            for book in resp.json():
-                if book["id"] not in seen_ids:
-                    results.append(book)
-                    seen_ids.add(book["id"])
+            append_books(resp.json())
 
         # Nếu không có query, lấy toàn bộ để lọc theo category
         if not query:
             resp = requests.get(base_url, timeout=10)
             resp.raise_for_status()
-            for book in resp.json():
-                results.append(book)
+            append_books(resp.json())
 
         # Lọc theo category (client-side) nếu được chỉ định
         if category and results:
@@ -176,6 +205,63 @@ def search_books(query: str, category: str = "") -> str:
     except Exception as exc:
         logger.error("search_books unexpected error: %s", exc, exc_info=True)
         return json.dumps({"error": f"Lỗi không xác định khi tìm sách: {exc}"}, ensure_ascii=False)
+
+
+def get_book_detail(book_id: int) -> str:
+    """
+    Lấy thông tin chi tiết sách và thống kê review.
+
+    Args:
+        book_id: ID của sách.
+
+    Returns:
+        JSON chứa thông tin sách + review summary.
+    """
+    try:
+        book_resp = requests.get(f"{settings.BOOK_SERVICE_URL}/api/books/{book_id}/", timeout=10)
+        if book_resp.status_code == 404:
+            return json.dumps({"found": False, "message": "Không tìm thấy sách với ID đã cung cấp."}, ensure_ascii=False)
+        book_resp.raise_for_status()
+        book = book_resp.json()
+
+        review_resp = requests.get(f"{settings.COMMENT_SERVICE_URL}/api/reviews/books/{book_id}/", timeout=10)
+        review_payload = {}
+        if review_resp.status_code == 200:
+            review_payload = review_resp.json()
+
+        detail = {
+            "found": True,
+            "book": {
+                "id": book.get("id"),
+                "title": book.get("title"),
+                "author": book.get("author"),
+                "price": str(book.get("price", "0")),
+                "stock": book.get("stock", 0),
+                "category_name": book.get("category_name", ""),
+                "description": (book.get("description") or "")[:1000],
+            },
+            "reviews": {
+                "avg_rating": review_payload.get("avg_rating", 0),
+                "total_reviews": review_payload.get("total_reviews", 0),
+                "latest_comments": [
+                    {
+                        "rating": item.get("rating", 0),
+                        "comment": (item.get("comment") or "")[:200],
+                    }
+                    for item in (review_payload.get("reviews") or [])[:3]
+                ],
+            },
+        }
+        return json.dumps(detail, ensure_ascii=False)
+    except requests.exceptions.ConnectionError:
+        logger.error("get_book_detail: không kết nối được downstream service")
+        return json.dumps({"found": False, "error": "Dịch vụ thông tin sách hiện không khả dụng."}, ensure_ascii=False)
+    except requests.exceptions.Timeout:
+        logger.error("get_book_detail: timeout")
+        return json.dumps({"found": False, "error": "Yêu cầu lấy chi tiết sách bị timeout."}, ensure_ascii=False)
+    except Exception as exc:
+        logger.error("get_book_detail unexpected error: %s", exc, exc_info=True)
+        return json.dumps({"found": False, "error": f"Lỗi khi lấy chi tiết sách: {exc}"}, ensure_ascii=False)
 
 
 def add_book_to_cart(user_id: int, book_id: int, quantity: int = 1) -> str:
@@ -234,5 +320,6 @@ def add_book_to_cart(user_id: int, book_id: int, quantity: int = 1) -> str:
 
 TOOL_FUNCTION_MAP: dict = {
     "search_books": search_books,
+    "get_book_detail": get_book_detail,
     "add_book_to_cart": add_book_to_cart,
 }

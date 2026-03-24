@@ -172,6 +172,42 @@ class AgentChatView(APIView):
         """
         lowered = user_message.lower()
 
+        # Intent: xem chi tiết sách theo book_id
+        if any(keyword in lowered for keyword in [
+            "chi tiết", "thông tin", "nội dung", "mô tả", "review", "đánh giá",
+            "detail", "details", "info", "information", "description", "product"
+        ]):
+            import re
+            match = re.search(r"(?:id\s*)?(\d+)", lowered)
+            if match:
+                book_id = int(match.group(1))
+                detail_fn = TOOL_FUNCTION_MAP.get("get_book_detail")
+                if detail_fn:
+                    try:
+                        result = detail_fn(book_id=book_id)
+                        payload = json.loads(result)
+                        if not payload.get("found"):
+                            return payload.get("message") or payload.get("error") or "Không tìm thấy thông tin sách phù hợp."
+
+                        book = payload.get("book", {})
+                        reviews = payload.get("reviews", {})
+                        lines = [
+                            f"Thông tin sách ID {book.get('id')}",
+                            f"- Tên: {book.get('title')}",
+                            f"- Tác giả: {book.get('author')}",
+                            f"- Giá: {book.get('price')} VND",
+                            f"- Thể loại: {book.get('category_name') or 'Chưa phân loại'}",
+                            f"- Tồn kho: {book.get('stock')}",
+                            f"- Điểm đánh giá: {reviews.get('avg_rating', 0)}/5 ({reviews.get('total_reviews', 0)} lượt)",
+                        ]
+                        description = (book.get("description") or "").strip()
+                        if description:
+                            lines.append(f"- Mô tả: {description[:300]}")
+                        lines.append("Bạn có thể nhắn: 'thêm sách id <ID> vào giỏ' nếu muốn mua ngay.")
+                        return "\n".join(lines)
+                    except Exception:
+                        return "Mình chưa thể lấy chi tiết sách lúc này, bạn thử lại sau nhé."
+
         # Intent: thêm vào giỏ theo book_id
         if ("thêm" in lowered and "giỏ" in lowered) or ("add" in lowered and "cart" in lowered):
             import re
