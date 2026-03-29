@@ -39,6 +39,7 @@ MANAGER_SERVICE_URL = os.environ.get('MANAGER_SERVICE_URL', 'http://manager-serv
 STAFF_SERVICE_URL = os.environ.get('STAFF_SERVICE_URL', 'http://staff-service:8001')
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://cart-service:8006')
 BOOK_SERVICE_URL = os.environ.get('BOOK_SERVICE_URL', 'http://book-service:8005')
+CLOTH_SERVICE_URL = os.environ.get('CLOTH_SERVICE_URL', 'http://cloth-service:8013')
 PAY_SERVICE_URL = os.environ.get('PAY_SERVICE_URL', 'http://pay-service:8009')
 SHIP_SERVICE_URL = os.environ.get('SHIP_SERVICE_URL', 'http://ship-service:8008')
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': [], 'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny']}

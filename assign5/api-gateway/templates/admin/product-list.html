@@ -22,7 +22,7 @@
                     </div>
                     <hr>
                     <table class="table table-hover table-striped table-boreded">
-                        <thead><tr><th>ID</th><th>Title</th><th>Author</th><th>Price</th><th>Stock</th><th>Category</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Type</th><th>ID</th><th>Title</th><th>Subtitle</th><th>Price</th><th>Stock</th><th>Category</th><th>Action</th></tr></thead>
                         <tbody id="admin-product-list-body"></tbody>
                     </table>
                 </div>
@@ -60,51 +60,94 @@
             }
         }
 
+        function normalizeBooks(books) {
+            return (books || []).map((item) => ({
+                type: 'book',
+                id: item.id,
+                title: item.title || '',
+                subtitle: item.author || '',
+                price: item.price || 0,
+                stock: item.stock || 0,
+                category_id: item.category_id,
+                category_name: item.category_name || '',
+            }));
+        }
+
+        function normalizeClothes(clothes) {
+            return (clothes || []).map((item) => ({
+                type: 'cloth',
+                id: item.id,
+                title: item.name || '',
+                subtitle: [item.brand, item.size, item.color].filter(Boolean).join(' | '),
+                price: item.price || 0,
+                stock: item.stock || 0,
+                category_id: item.category_id,
+                category_name: item.category_name || '',
+            }));
+        }
+
         async function loadProducts() {
             const body = document.getElementById('admin-product-list-body');
-            body.innerHTML = '<tr><td colspan="7" class="text-center">Đang tải...</td></tr>';
+            body.innerHTML = '<tr><td colspan="8" class="text-center">Đang tải...</td></tr>';
 
             try {
-                const [res, categoryMap] = await Promise.all([
+                const [bookRes, clothRes, categoryMap] = await Promise.all([
                     fetch('/api/books/'),
+                    fetch('/api/clothes/'),
                     loadCategoryMap()
                 ]);
-                const data = await res.json();
-                if (!res.ok || !Array.isArray(data)) throw new Error('Không thể tải sản phẩm');
 
-                if (!data.length) {
-                    body.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Chưa có sản phẩm</td></tr>';
+                const [bookData, clothData] = await Promise.all([
+                    bookRes.json().catch(() => ([])),
+                    clothRes.json().catch(() => ([])),
+                ]);
+
+                const products = [
+                    ...normalizeBooks(bookRes.ok && Array.isArray(bookData) ? bookData : []),
+                    ...normalizeClothes(clothRes.ok && Array.isArray(clothData) ? clothData : []),
+                ];
+
+                products.sort((a, b) => {
+                    if (a.type === b.type) return b.id - a.id;
+                    return a.type.localeCompare(b.type);
+                });
+
+                if (!products.length) {
+                    body.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Chưa có sản phẩm</td></tr>';
                     return;
                 }
 
-                body.innerHTML = data.map((item) => `
+                body.innerHTML = products.map((item) => `
                     <tr>
+                        <td><span class="badge ${item.type === 'book' ? 'bg-primary' : 'bg-success'}">${item.type.toUpperCase()}</span></td>
                         <td>${item.id}</td>
                         <td>${item.title || ''}</td>
-                        <td>${item.author || ''}</td>
+                        <td>${item.subtitle || ''}</td>
                         <td>${item.price || 0}</td>
                         <td>${item.stock || 0}</td>
                         <td>${item.category_name || categoryMap[String(item.category_id)] || ''}</td>
                         <td>
-                            <a class="btn btn-info btn-sm" href="/admin-panel/products/detail/?id=${item.id}">View</a>
-                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${item.id})">Delete</button>
+                            <a class="btn btn-info btn-sm" href="/admin-panel/products/detail/?type=${item.type}&id=${item.id}">View</a>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct('${item.type}', ${item.id})">Delete</button>
                         </td>
                     </tr>
                 `).join('');
             } catch (error) {
-                body.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${error.message}</td></tr>`;
+                body.innerHTML = `<tr><td colspan="8" class="text-center text-danger">${error.message}</td></tr>`;
             }
         }
 
-        async function deleteProduct(id) {
-            if (!confirm(`Xóa sản phẩm #${id}?`)) return;
+        async function deleteProduct(type, id) {
+            if (!confirm(`Xóa sản phẩm #${id} (${type})?`)) return;
             const token = localStorage.getItem('admin_token');
             if (!token) {
                 alert('Bạn cần đăng nhập admin');
                 return;
             }
 
-            const res = await fetch(`/api/books/${id}/`, {
+            const endpoint = type === 'cloth' ? '/api/clothes/' : '/api/books/';
+
+            const res = await fetch(`${endpoint}${id}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Token ${token}` }
             });

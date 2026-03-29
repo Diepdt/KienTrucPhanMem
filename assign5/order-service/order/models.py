@@ -28,8 +28,16 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    book_id = models.IntegerField()
-    book_title = models.CharField(max_length=255)
+    product_type = models.CharField(max_length=50, default='book')
+    product_id = models.IntegerField()
+    product_name = models.CharField(max_length=255)
+    product_subtitle = models.CharField(max_length=255, blank=True)
+    product_image_url = models.URLField(blank=True)
+    product_snapshot = models.JSONField(default=dict, blank=True)
+
+    # Legacy fields for compatibility with existing consumers.
+    book_id = models.IntegerField(null=True, blank=True)
+    book_title = models.CharField(max_length=255, blank=True)
     book_author = models.CharField(max_length=255, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField(default=1)
@@ -39,4 +47,4 @@ class OrderItem(models.Model):
         return self.price * self.quantity
 
     def __str__(self):
-        return f"{self.book_title} x{self.quantity}"
+        return f"{self.product_name} x{self.quantity}"

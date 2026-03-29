@@ -27,9 +27,62 @@ def verify_staff_token(auth_header):
     return False, None
 
 
+def verify_manager_token(auth_header):
+    try:
+        manager_url = django_settings.MANAGER_SERVICE_URL
+        resp = http_requests.get(
+            f"{manager_url}/api/manager/verify-token/",
+            headers={'Authorization': auth_header},
+            timeout=5
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('valid', False), data.get('manager')
+    except Exception as e:
+        logger.error(f"Error verifying manager token: {e}")
+    return False, None
+
+
+def verify_admin_token(auth_header):
+    staff_valid, staff = verify_staff_token(auth_header)
+    if staff_valid:
+        return True, {'id': staff.get('id'), 'type': 'staff'}
+
+    manager_valid, manager = verify_manager_token(auth_header)
+    if manager_valid:
+        return True, {'id': manager.get('id'), 'type': 'manager'}
+
+    return False, None
+
+
+def get_category_name(category_id):
+    try:
+        catalog_url = django_settings.CATALOG_SERVICE_URL
+        resp = http_requests.get(f"{catalog_url}/api/categories/{category_id}/", timeout=5)
+        if resp.status_code == 200:
+            return resp.json().get('name', '')
+    except Exception as e:
+        logger.error(f"Error getting category name: {e}")
+    return ''
+
+
 class ClothViewSet(viewsets.ViewSet):
     def list(self, request):
         clothes = Cloth.objects.filter(is_active=True)
+
+        category_id = request.query_params.get('category_id')
+        if category_id:
+            clothes = clothes.filter(category_id=category_id)
+
+        search = request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            clothes = clothes.filter(
+                Q(name__icontains=search) |
+                Q(brand__icontains=search) |
+                Q(color__icontains=search) |
+                Q(material__icontains=search)
+            )
 
         name = request.query_params.get('name')
         if name:
@@ -58,29 +111,39 @@ class ClothViewSet(viewsets.ViewSet):
 
     def create(self, request):
         auth = request.headers.get('Authorization', '')
-        valid, staff = verify_staff_token(auth)
+        valid, actor = verify_admin_token(auth)
         if not valid:
-            return Response({'error': 'Chỉ nhân viên mới được thêm sản phẩm'}, status=403)
+            return Response({'error': 'Chỉ manager/staff mới được thêm sản phẩm'}, status=403)
 
         serializer = ClothCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        cloth = serializer.save(created_by_staff_id=staff['id'])
+        category_id = request.data.get('category_id')
+        category_name = get_category_name(category_id) if category_id else ''
+        cloth = serializer.save(
+            created_by_staff_id=actor['id'],
+            category_name=category_name
+        )
         return Response(ClothSerializer(cloth).data, status=201)
 
     def update(self, request, pk=None):
         auth = request.headers.get('Authorization', '')
-        valid, _ = verify_staff_token(auth)
+        valid, _ = verify_admin_token(auth)
         if not valid:
-            return Response({'error': 'Chỉ nhân viên mới được sửa sản phẩm'}, status=403)
+            return Response({'error': 'Chỉ manager/staff mới được sửa sản phẩm'}, status=403)
 
         try:
             cloth = Cloth.objects.get(pk=pk)
         except Cloth.DoesNotExist:
             return Response({'error': 'Sản phẩm quần áo không tồn tại'}, status=404)
 
-        serializer = ClothSerializer(cloth, data=request.data, partial=True)
+        payload = request.data.copy()
+        if 'category_id' in payload:
+            category_id = payload.get('category_id')
+            payload['category_name'] = get_category_name(category_id) if category_id else ''
+
+        serializer = ClothSerializer(cloth, data=payload, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -88,9 +151,9 @@ class ClothViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         auth = request.headers.get('Authorization', '')
-        valid, _ = verify_staff_token(auth)
+        valid, _ = verify_admin_token(auth)
         if not valid:
-            return Response({'error': 'Chỉ nhân viên mới được xóa sản phẩm'}, status=403)
+            return Response({'error': 'Chỉ manager/staff mới được xóa sản phẩm'}, status=403)
 
         try:
             cloth = Cloth.objects.get(pk=pk)

@@ -112,7 +112,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentBookId = null;
+        let currentProductId = null;
+        let currentProductType = 'book';
 
         function escapeHtml(value) {
             return String(value || '')
@@ -132,34 +133,73 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
         }
 
-        function getBookIdFromQuery() {
+        function getProductFromQuery() {
             const url = new URL(window.location.href);
-            return url.searchParams.get('id');
+            return {
+                id: url.searchParams.get('id'),
+                type: (url.searchParams.get('type') || 'book').toLowerCase(),
+            };
         }
 
-        async function resolveCategoryName(book) {
-            if (!book?.category_id) {
-                return book?.category_name || 'Chưa phân loại';
+        function normalizeProduct(type, payload) {
+            if (type === 'book') {
+                return {
+                    product_type: 'book',
+                    product_id: payload.id,
+                    title: payload.title || 'Sách',
+                    subtitle_label: 'Tác giả',
+                    subtitle: payload.author || 'N/A',
+                    image_url: payload.cover_url || '',
+                    price: payload.price || 0,
+                    stock: payload.stock || 0,
+                    category_id: payload.category_id,
+                    category_name: payload.category_name || '',
+                    description: payload.description || '',
+                };
+            }
+
+            const subtitleParts = [payload.brand, payload.size, payload.color].filter(Boolean);
+            return {
+                product_type: 'cloth',
+                product_id: payload.id,
+                title: payload.name || 'Sản phẩm quần áo',
+                subtitle_label: 'Thuộc tính',
+                subtitle: subtitleParts.join(' | ') || 'N/A',
+                image_url: payload.image_url || '',
+                price: payload.price || 0,
+                stock: payload.stock || 0,
+                category_id: payload.category_id,
+                category_name: payload.category_name || '',
+                description: payload.description || '',
+            };
+        }
+
+        async function resolveCategoryName(product) {
+            if (!product?.category_id) {
+                return product?.category_name || 'Chưa phân loại';
             }
 
             try {
-                const response = await fetch(`/api/categories/${book.category_id}/`);
+                const response = await fetch(`/api/categories/${product.category_id}/`);
                 const category = await response.json();
                 if (response.ok && category?.name) {
                     return category.name;
                 }
             } catch {}
 
-            return book?.category_name || 'Chưa phân loại';
+            return product?.category_name || 'Chưa phân loại';
         }
 
-        async function loadBookDetail() {
+        async function loadProductDetail() {
             const container = document.getElementById('product-detail-container');
+            const reviewSection = document.getElementById('review-section');
 
             try {
-                let bookId = getBookIdFromQuery();
+                const query = getProductFromQuery();
+                const productId = query.id;
+                const productType = query.type === 'cloth' ? 'cloth' : 'book';
 
-                if (!bookId) {
+                if (!productId) {
                     container.innerHTML = '<div class="col-12"><div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>Không có thông tin sản phẩm để hiển thị. <a href="/customer/product/" class="alert-link">Quay lại danh sách sản phẩm</a></div></div>';
                     return;
                 }
@@ -167,41 +207,49 @@
                 // Show loading state
                 container.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải chi tiết sản phẩm...</p></div></div>';
 
-                const res = await fetch(`/api/books/${bookId}/`);
-                const book = await res.json();
+                const endpoint = productType === 'book' ? `/api/books/${productId}/` : `/api/clothes/${productId}/`;
+                const res = await fetch(endpoint);
+                const rawProduct = await res.json();
 
                 if (!res.ok) {
                     container.innerHTML = '<div class="col-12"><div class="alert alert-danger"><i class="fa fa-times-circle me-2"></i>Không thể tải chi tiết sản phẩm. <a href="/customer/product/" class="alert-link">Quay lại danh sách</a></div></div>';
                     return;
                 }
 
-                const categoryName = await resolveCategoryName(book);
+                const product = normalizeProduct(productType, rawProduct);
+                const categoryName = await resolveCategoryName(product);
+                const defaultImage = productType === 'book'
+                    ? 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'
+                    : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
+                const typeBadge = productType === 'book'
+                    ? '<span class="badge text-bg-primary">Book</span>'
+                    : '<span class="badge text-bg-success">Cloth</span>';
 
                 // Restore the original HTML structure and populate with data
                 container.innerHTML = `
                     <div class="col-lg-5">
                         <div class="product-box">
-                            <img id="product-cover" src="${book.cover_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'}" class="product-image" alt="${book.title}">
+                            <img id="product-cover" src="${product.image_url || defaultImage}" class="product-image" alt="${product.title}">
                         </div>
                     </div>
                     <div class="col-lg-7">
                         <div class="product-box h-100">
-                            <h1 class="fw-bold mb-2" id="product-title">${book.title || 'N/A'}</h1>
-                            <p class="text-muted mb-3"><i class="fa fa-user me-2"></i>Tác giả: <span id="product-author">${book.author || 'N/A'}</span></p>
-                            <h3 class="text-primary fw-bold mb-3" id="product-price">${formatPrice(book.price)}</h3>
+                            <h1 class="fw-bold mb-2" id="product-title">${product.title || 'N/A'} ${typeBadge}</h1>
+                            <p class="text-muted mb-3"><i class="fa fa-tag me-2"></i>${product.subtitle_label}: <span id="product-author">${product.subtitle || 'N/A'}</span></p>
+                            <h3 class="text-primary fw-bold mb-3" id="product-price">${formatPrice(product.price)}</h3>
 
                             <div class="mb-3">
-                                <span class="badge text-bg-${book.stock > 0 ? 'success' : 'danger'} me-2"><i class="fa fa-box me-1"></i>Kho: <span id="product-stock">${book.stock}</span></span>
+                                <span class="badge text-bg-${product.stock > 0 ? 'success' : 'danger'} me-2"><i class="fa fa-box me-1"></i>Kho: <span id="product-stock">${product.stock}</span></span>
                                 <span class="badge text-bg-light border me-2"><i class="fa fa-tags me-1"></i>Danh mục: <span id="product-category">${categoryName}</span></span>
                             </div>
 
-                            <p class="mb-4" id="product-short-desc">${(book.description || '').slice(0, 200) || 'Không có mô tả ngắn.'}${book.description && book.description.length > 200 ? '...' : ''}</p>
+                            <p class="mb-4" id="product-short-desc">${(product.description || '').slice(0, 200) || 'Không có mô tả ngắn.'}${product.description && product.description.length > 200 ? '...' : ''}</p>
 
                             <div class="mb-4">
                                 <div class="row g-2">
                                     <div class="col-md-6">
-                                        <button id="btn-add-cart" class="btn btn-primary w-100" onclick="addCurrentToCart()" ${book.stock <= 0 ? 'disabled' : ''}>
-                                            <i class="fa fa-shopping-bag me-2"></i>${book.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                                        <button id="btn-add-cart" class="btn btn-primary w-100" onclick="addCurrentToCart()" ${product.stock <= 0 ? 'disabled' : ''}>
+                                            <i class="fa fa-shopping-bag me-2"></i>${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
                                         </button>
                                     </div>
                                     <div class="col-md-6">
@@ -220,16 +268,22 @@
                             <hr>
                             <h4><i class="fa fa-info-circle me-2"></i>Mô tả chi tiết</h4>
                             <div class="border rounded p-3 bg-light">
-                                <p class="mb-0" id="product-description">${book.description || 'Không có mô tả chi tiết.'}</p>
+                                <p class="mb-0" id="product-description">${product.description || 'Không có mô tả chi tiết.'}</p>
                             </div>
                         </div>
                     </div>
                 `;
 
-                currentBookId = book.id;
-                document.title = `BookStore - ${book.title}`;
-                document.getElementById('review-section').style.display = 'block';
-                await loadReviews();
+                currentProductId = product.product_id;
+                currentProductType = product.product_type;
+                document.title = `BookStore - ${product.title}`;
+
+                if (currentProductType === 'book') {
+                    reviewSection.style.display = 'block';
+                    await loadReviews();
+                } else {
+                    reviewSection.style.display = 'none';
+                }
 
             } catch (error) {
                 container.innerHTML = `<div class="col-12"><div class="alert alert-danger"><i class="fa fa-exclamation-triangle me-2"></i>Lỗi tải sản phẩm: ${error.message}</div></div>`;
@@ -237,13 +291,13 @@
         }
 
         async function loadReviews() {
-            if (!currentBookId) return;
+            if (currentProductType !== 'book' || !currentProductId) return;
 
             const listEl = document.getElementById('review-list');
             const avgEl = document.getElementById('review-avg-rating');
             const totalEl = document.getElementById('review-total');
             try {
-                const res = await fetch(`/api/reviews/books/${currentBookId}/`);
+                const res = await fetch(`/api/reviews/books/${currentProductId}/`);
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
@@ -278,7 +332,7 @@
         // Đã chuyển luồng gửi đánh giá sang trang chi tiết đơn hàng
 
         async function addCurrentToCart() {
-            if (!currentBookId) return;
+            if (!currentProductId) return;
 
             const token = localStorage.getItem('customer_token');
             if (!token) {
@@ -300,7 +354,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Token ${token}`,
                     },
-                    body: JSON.stringify({ book_id: currentBookId, quantity: 1 }),
+                    body: JSON.stringify({ product_type: currentProductType, product_id: currentProductId, quantity: 1 }),
                 });
 
                 const data = await res.json();
@@ -340,7 +394,7 @@
             if (typeof clientUpdateHeaderState === 'function') {
                 clientUpdateHeaderState();
             }
-            loadBookDetail();
+            loadProductDetail();
         });
     </script>
 </body>

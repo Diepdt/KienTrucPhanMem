@@ -3,11 +3,29 @@ from .models import Cart, CartItem
 
 class CartItemSerializer(serializers.ModelSerializer):
     item_total = serializers.ReadOnlyField()
+    display_name = serializers.SerializerMethodField()
+    display_subtitle = serializers.SerializerMethodField()
+    display_image_url = serializers.SerializerMethodField()
+
+    def get_display_name(self, obj):
+        return obj.product_name or obj.book_title
+
+    def get_display_subtitle(self, obj):
+        return obj.product_subtitle or obj.book_author
+
+    def get_display_image_url(self, obj):
+        return obj.product_image_url or obj.book_cover_url
 
     class Meta:
         model = CartItem
-        fields = ['id', 'book_id', 'book_title', 'book_author', 'book_cover_url',
-                  'price', 'quantity', 'item_total']
+        fields = [
+            'id',
+            'product_type', 'product_id', 'product_name', 'product_subtitle',
+            'product_image_url', 'source_service', 'product_snapshot',
+            'display_name', 'display_subtitle', 'display_image_url',
+            'book_id', 'book_title', 'book_author', 'book_cover_url',
+            'price', 'quantity', 'item_total'
+        ]
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)

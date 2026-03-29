@@ -18,10 +18,22 @@
                     <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item"><a href="/admin-panel/products/">Products</a></li><li class="breadcrumb-item active">Update product</li></ol>
                     <div class="row col-6 mx-auto">
                         <form onsubmit="event.preventDefault();updateProduct();">
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Title:</label><input id="p-title" type="text" class="form-control"></div><div class="mb-3 col-6"><label class="form-label">Author:</label><input id="p-author" type="text" class="form-control"></div></div>
+                            <div class="mb-3">
+                                <label class="form-label">Product Type:</label>
+                                <select id="p-type" class="form-select" disabled>
+                                    <option value="book">Book</option>
+                                    <option value="cloth">Cloth</option>
+                                </select>
+                            </div>
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Title / Name:</label><input id="p-title" type="text" class="form-control"></div><div class="mb-3 col-6"><label class="form-label" id="p-subtitle-label">Author:</label><input id="p-subtitle" type="text" class="form-control"></div></div>
                             <div class="row"><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control"></div><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control"></div></div>
                             <div class="row"><div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div></div>
-                            <div class="mb-3"><label class="form-label">Cover URL:</label><input id="p-cover" type="url" class="form-control"></div>
+                            <div class="mb-3"><label class="form-label" id="p-image-label">Cover URL:</label><input id="p-image" type="url" class="form-control"></div>
+                            <div id="cloth-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Size:</label><input id="c-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="c-color" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Material:</label><input id="c-material" type="text" class="form-control"></div>
+                            </div>
                             <div class="mb-3"><label class="form-label">Description:</label><textarea id="p-desc" class="form-control" rows="3"></textarea></div>
                             <div id="product-detail-error" class="alert alert-danger d-none py-2 small"></div>
                             <div style="display:flex; gap: 10px;"><button type="submit" class="btn btn-warning">Submit</button><button type="button" class="btn btn-danger" onclick="deleteProduct()">Delete</button><a class="btn btn-secondary" href="/admin-panel/products/">Cancel</a></div>
@@ -35,17 +47,39 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentProductId = null;
+        let currentProductType = 'book';
 
-        function getProductId() {
+        function getProductRef() {
             const url = new URL(window.location.href);
             const id = url.searchParams.get('id');
-            return id ? Number(id) : null;
+            const type = (url.searchParams.get('type') || 'book').toLowerCase();
+            return {
+                id: id ? Number(id) : null,
+                type: type === 'cloth' ? 'cloth' : 'book',
+            };
         }
 
         function showDetailError(message) {
             const el = document.getElementById('product-detail-error');
             el.textContent = message;
             el.classList.remove('d-none');
+        }
+
+        function toggleProductTypeFields() {
+            const type = currentProductType;
+            const subtitleLabel = document.getElementById('p-subtitle-label');
+            const imageLabel = document.getElementById('p-image-label');
+            const clothFields = document.getElementById('cloth-fields');
+
+            if (type === 'cloth') {
+                subtitleLabel.textContent = 'Brand:';
+                imageLabel.textContent = 'Image URL:';
+                clothFields.classList.remove('d-none');
+            } else {
+                subtitleLabel.textContent = 'Author:';
+                imageLabel.textContent = 'Cover URL:';
+                clothFields.classList.add('d-none');
+            }
         }
 
         function flattenCategories(categories, prefix = '') {
@@ -84,25 +118,34 @@
         }
 
         async function loadProduct() {
-            currentProductId = getProductId();
+            const productRef = getProductRef();
+            currentProductId = productRef.id;
+            currentProductType = productRef.type;
             if (!currentProductId) {
                 showDetailError('Thiếu id sản phẩm trên URL.');
                 return;
             }
 
-            const res = await fetch(`/api/books/${currentProductId}/`);
+            document.getElementById('p-type').value = currentProductType;
+            toggleProductTypeFields();
+
+            const endpoint = currentProductType === 'cloth' ? '/api/clothes/' : '/api/books/';
+            const res = await fetch(`${endpoint}${currentProductId}/`);
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 showDetailError(data.error || 'Không tải được sản phẩm');
                 return;
             }
 
-            document.getElementById('p-title').value = data.title || '';
-            document.getElementById('p-author').value = data.author || '';
+            document.getElementById('p-title').value = currentProductType === 'cloth' ? (data.name || '') : (data.title || '');
+            document.getElementById('p-subtitle').value = currentProductType === 'cloth' ? (data.brand || '') : (data.author || '');
             document.getElementById('p-price').value = data.price || 0;
             document.getElementById('p-stock').value = data.stock || 0;
             await loadCategoryOptions(data.category_id ?? '');
-            document.getElementById('p-cover').value = data.cover_url || '';
+            document.getElementById('p-image').value = currentProductType === 'cloth' ? (data.image_url || '') : (data.cover_url || '');
+            document.getElementById('c-size').value = data.size || '';
+            document.getElementById('c-color').value = data.color || '';
+            document.getElementById('c-material').value = data.material || '';
             document.getElementById('p-desc').value = data.description || '';
         }
 
@@ -114,17 +157,33 @@
                 return;
             }
 
-            const payload = {
-                title: document.getElementById('p-title').value.trim(),
-                author: document.getElementById('p-author').value.trim(),
+            const common = {
                 price: document.getElementById('p-price').value,
                 stock: Number(document.getElementById('p-stock').value || 0),
                 category_id: document.getElementById('p-category').value ? Number(document.getElementById('p-category').value) : null,
-                cover_url: document.getElementById('p-cover').value.trim(),
                 description: document.getElementById('p-desc').value.trim(),
             };
 
-            const res = await fetch(`/api/books/${currentProductId}/`, {
+            const payload = currentProductType === 'cloth'
+                ? {
+                    name: document.getElementById('p-title').value.trim(),
+                    brand: document.getElementById('p-subtitle').value.trim(),
+                    image_url: document.getElementById('p-image').value.trim(),
+                    size: document.getElementById('c-size').value.trim(),
+                    color: document.getElementById('c-color').value.trim(),
+                    material: document.getElementById('c-material').value.trim(),
+                    ...common,
+                }
+                : {
+                    title: document.getElementById('p-title').value.trim(),
+                    author: document.getElementById('p-subtitle').value.trim(),
+                    cover_url: document.getElementById('p-image').value.trim(),
+                    ...common,
+                };
+
+            const endpoint = currentProductType === 'cloth' ? '/api/clothes/' : '/api/books/';
+
+            const res = await fetch(`${endpoint}${currentProductId}/`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -151,7 +210,8 @@
                 return;
             }
 
-            const res = await fetch(`/api/books/${currentProductId}/`, {
+            const endpoint = currentProductType === 'cloth' ? '/api/clothes/' : '/api/books/';
+            const res = await fetch(`${endpoint}${currentProductId}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Token ${token}` },
             });

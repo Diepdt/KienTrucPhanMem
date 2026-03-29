@@ -103,6 +103,33 @@
             return 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
         }
 
+        function getDefaultClothImage() {
+            return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
+        }
+
+        function getItemType(item) {
+            return (item.product_type || 'book').toLowerCase();
+        }
+
+        function getItemTitle(item) {
+            return item.product_name || item.book_title || 'Sản phẩm';
+        }
+
+        function getItemSubtitle(item) {
+            return item.product_subtitle || item.book_author || 'N/A';
+        }
+
+        function getItemImage(item) {
+            const type = getItemType(item);
+            const url = item.product_image_url || item.book_cover_url || '';
+            if (url) return url;
+            return type === 'cloth' ? getDefaultClothImage() : getDefaultBookImage();
+        }
+
+        function getItemProductId(item) {
+            return item.product_id || item.book_id;
+        }
+
         function renderEmptyCart() {
             return `
                 <div class="row justify-content-center">
@@ -193,14 +220,14 @@
                                    onchange="toggleSelectItem(${item.id})" ${selectedItems.has(item.id) ? 'checked' : ''}>
                         </div>
                         <div class="col-auto">
-                            <img src="${item.book_cover_url || getDefaultBookImage()}"
-                                 class="cart-image" alt="${item.book_title}">
+                            <img src="${getItemImage(item)}"
+                                 class="cart-image" alt="${getItemTitle(item)}">
                         </div>
                         <div class="col">
                             <h6 class="mb-1">
-                                <a href="/customer/product-detail/?id=${item.book_id}" class="text-decoration-none">${item.book_title}</a>
+                                <a href="/customer/product-detail/?type=${getItemType(item)}&id=${getItemProductId(item)}" class="text-decoration-none">${getItemTitle(item)}</a>
                             </h6>
-                            <p class="text-muted small mb-2"><i class="fa fa-user me-1"></i>${item.book_author || 'N/A'}</p>
+                            <p class="text-muted small mb-2"><i class="fa fa-tag me-1"></i>${getItemSubtitle(item)}</p>
                             <p class="mb-0"><strong>${formatPrice(item.price)}</strong></p>
                         </div>
                         <div class="col-auto">

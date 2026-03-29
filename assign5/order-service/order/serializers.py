@@ -3,9 +3,16 @@ from .models import Order, OrderItem
 
 class OrderItemSerializer(serializers.ModelSerializer):
     item_total = serializers.ReadOnlyField()
+
     class Meta:
         model = OrderItem
-        fields = ['id', 'book_id', 'book_title', 'book_author', 'price', 'quantity', 'item_total']
+        fields = [
+            'id',
+            'product_type', 'product_id', 'product_name', 'product_subtitle',
+            'product_image_url', 'product_snapshot',
+            'book_id', 'book_title', 'book_author',
+            'price', 'quantity', 'item_total'
+        ]
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)

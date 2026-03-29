@@ -12,7 +12,7 @@ services:
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_ROOT_HOST: "%"
     ports:
-      - "33306:3306"
+      - "33336:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
@@ -144,11 +144,14 @@ services:
       DB_PORT: "3306"
       SECRET_KEY: "cart-secret-key-production"
       BOOK_SERVICE_URL: "http://book-service:8005"
+      CLOTH_SERVICE_URL: "http://cloth-service:8013"
       CUSTOMER_SERVICE_URL: "http://customer-service:8003"
     depends_on:
       mysql:
         condition: service_healthy
       book-service:
+        condition: service_started
+      cloth-service:
         condition: service_started
       customer-service:
         condition: service_started
@@ -172,6 +175,7 @@ services:
       MANAGER_SERVICE_URL: "http://manager-service:8002"
       CART_SERVICE_URL: "http://cart-service:8006"
       BOOK_SERVICE_URL: "http://book-service:8005"
+      CLOTH_SERVICE_URL: "http://cloth-service:8013"
       PAY_SERVICE_URL: "http://pay-service:8009"
       SHIP_SERVICE_URL: "http://ship-service:8008"
     depends_on:
@@ -182,6 +186,8 @@ services:
       cart-service:
         condition: service_started
       book-service:
+        condition: service_started
+      cloth-service:
         condition: service_started
 
   # ============================================================
@@ -316,6 +322,8 @@ services:
       DB_PORT: "3306"
       SECRET_KEY: "cloth-secret-key-production"
       STAFF_SERVICE_URL: "http://staff-service:8001"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+      CATALOG_SERVICE_URL: "http://catalog-service:8004"
     depends_on:
       mysql:
         condition: service_healthy

@@ -86,7 +86,27 @@
             return 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
         }
 
-        function getBookCover(orderItem, coverMap) {
+        function getDefaultClothImage() {
+            return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
+        }
+
+        function getItemType(item) {
+            return (item.product_type || 'book').toLowerCase();
+        }
+
+        function getItemTitle(item) {
+            return item.product_name || item.book_title || 'Sản phẩm';
+        }
+
+        function getItemSubtitle(item) {
+            return item.product_subtitle || item.book_author || 'N/A';
+        }
+
+        function getItemCover(orderItem, coverMap) {
+            if (orderItem?.product_image_url) {
+                return orderItem.product_image_url;
+            }
+
             if (orderItem?.book_cover_url) {
                 return orderItem.book_cover_url;
             }
@@ -96,7 +116,7 @@
                 return coverMap[bookId];
             }
 
-            return getDefaultBookImage();
+            return getItemType(orderItem) === 'cloth' ? getDefaultClothImage() : getDefaultBookImage();
         }
 
         async function loadBookCoverMap(items) {
@@ -128,6 +148,8 @@
         function renderOrderDetail(order, coverMap = {}, myReviewMap = {}) {
             const canReview = order.status === 'delivered';
             const itemsHtml = (Array.isArray(order.items) ? order.items : []).map(item => {
+                const itemType = getItemType(item);
+                const canReviewItem = canReview && itemType === 'book' && item.book_id;
                 const existing = myReviewMap[String(item.book_id)] || null;
                 const ratingValue = existing?.rating || 5;
                 const commentValue = existing?.comment || '';
@@ -136,11 +158,11 @@
                 <tr>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <img src="${getBookCover(item, coverMap)}" class="book-thumb" alt="book">
+                            <img src="${getItemCover(item, coverMap)}" class="book-thumb" alt="product">
                             <div>
-                                <div class="fw-semibold">${item.book_title || 'Sách'}</div>
-                                <div class="text-muted small">${item.book_author || 'N/A'}</div>
-                                ${canReview ? `
+                                <div class="fw-semibold">${getItemTitle(item)}</div>
+                                <div class="text-muted small">${itemType.toUpperCase()} | ${getItemSubtitle(item)}</div>
+                                ${canReviewItem ? `
                                     <div class="mt-2 d-flex flex-column gap-2" style="max-width: 420px;">
                                         <div class="d-flex gap-2 align-items-center">
                                             <select id="review-rating-${item.book_id}" class="form-select form-select-sm" style="max-width: 130px;">
@@ -154,7 +176,7 @@
                                         </div>
                                         <input id="review-comment-${item.book_id}" class="form-control form-control-sm" placeholder="Nhận xét sản phẩm..." value="${String(commentValue || '').replaceAll('"', '&quot;')}">
                                     </div>
-                                ` : '<div class="text-muted small mt-2">Chỉ có thể đánh giá khi đơn hàng ở trạng thái đã giao hàng.</div>'}
+                                ` : '<div class="text-muted small mt-2">Đánh giá chỉ áp dụng cho sản phẩm sách đã giao hàng.</div>'}
                             </div>
                         </div>
                     </td>

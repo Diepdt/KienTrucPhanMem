@@ -41,6 +41,8 @@ DATABASES = {
 }
 
 STAFF_SERVICE_URL = os.environ.get('STAFF_SERVICE_URL', 'http://localhost:8001')
+MANAGER_SERVICE_URL = os.environ.get('MANAGER_SERVICE_URL', 'http://localhost:8002')
+CATALOG_SERVICE_URL = os.environ.get('CATALOG_SERVICE_URL', 'http://localhost:8004')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],

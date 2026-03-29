@@ -18,10 +18,25 @@
                     <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item"><a href="/admin-panel/products/">Products</a></li><li class="breadcrumb-item active">Create product</li></ol>
                     <div class="row col-6 mx-auto">
                         <form onsubmit="event.preventDefault();createProduct();">
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Title:</label><input id="p-title" type="text" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Author:</label><input id="p-author" type="text" class="form-control" required></div></div>
+                            <div class="mb-3">
+                                <label class="form-label">Product Type:</label>
+                                <select id="p-type" class="form-select" onchange="toggleProductTypeFields()">
+                                    <option value="book">Book</option>
+                                    <option value="cloth">Cloth</option>
+                                </select>
+                            </div>
+
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Title / Name:</label><input id="p-title" type="text" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label" id="p-subtitle-label">Author:</label><input id="p-subtitle" type="text" class="form-control" required></div></div>
                             <div class="row"><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div></div>
                             <div class="row"><div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div></div>
-                            <div class="mb-3"><label class="form-label">Cover URL:</label><input id="p-cover" type="url" class="form-control"></div>
+                            <div class="mb-3"><label class="form-label" id="p-image-label">Cover URL:</label><input id="p-image" type="url" class="form-control"></div>
+
+                            <div id="cloth-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Size:</label><input id="c-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="c-color" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Material:</label><input id="c-material" type="text" class="form-control"></div>
+                            </div>
+
                             <div class="mb-3"><label class="form-label">Description:</label><textarea id="p-desc" class="form-control" rows="3"></textarea></div>
                             <div id="product-create-error" class="alert alert-danger d-none py-2 small"></div>
                             <div class="mb-3"><button type="submit" class="btn btn-warning">Submit</button></div>
@@ -70,6 +85,26 @@
             el.classList.remove('d-none');
         }
 
+        function toggleProductTypeFields() {
+            const type = document.getElementById('p-type').value;
+            const subtitleLabel = document.getElementById('p-subtitle-label');
+            const imageLabel = document.getElementById('p-image-label');
+            const clothFields = document.getElementById('cloth-fields');
+            const subtitleInput = document.getElementById('p-subtitle');
+
+            if (type === 'cloth') {
+                subtitleLabel.textContent = 'Brand:';
+                imageLabel.textContent = 'Image URL:';
+                clothFields.classList.remove('d-none');
+                subtitleInput.required = false;
+            } else {
+                subtitleLabel.textContent = 'Author:';
+                imageLabel.textContent = 'Cover URL:';
+                clothFields.classList.add('d-none');
+                subtitleInput.required = true;
+            }
+        }
+
         async function createProduct() {
             const token = localStorage.getItem('admin_token');
             if (!token) {
@@ -77,17 +112,34 @@
                 return;
             }
 
-            const payload = {
-                title: document.getElementById('p-title').value.trim(),
-                author: document.getElementById('p-author').value.trim(),
+            const type = document.getElementById('p-type').value;
+            const common = {
                 price: document.getElementById('p-price').value,
                 stock: Number(document.getElementById('p-stock').value || 0),
                 category_id: document.getElementById('p-category').value ? Number(document.getElementById('p-category').value) : null,
-                cover_url: document.getElementById('p-cover').value.trim(),
                 description: document.getElementById('p-desc').value.trim(),
             };
 
-            const res = await fetch('/api/books/', {
+            const payload = type === 'cloth'
+                ? {
+                    name: document.getElementById('p-title').value.trim(),
+                    brand: document.getElementById('p-subtitle').value.trim(),
+                    image_url: document.getElementById('p-image').value.trim(),
+                    size: document.getElementById('c-size').value.trim(),
+                    color: document.getElementById('c-color').value.trim(),
+                    material: document.getElementById('c-material').value.trim(),
+                    ...common,
+                }
+                : {
+                    title: document.getElementById('p-title').value.trim(),
+                    author: document.getElementById('p-subtitle').value.trim(),
+                    cover_url: document.getElementById('p-image').value.trim(),
+                    ...common,
+                };
+
+            const endpoint = type === 'cloth' ? '/api/clothes/' : '/api/books/';
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -103,10 +155,11 @@
                 return;
             }
 
-            window.location.href = `/admin-panel/products/detail/?id=${data.id}`;
+            window.location.href = `/admin-panel/products/detail/?type=${type}&id=${data.id}`;
         }
 
         loadCategoryOptions();
+        toggleProductTypeFields();
     </script>
 </body>
 </html>

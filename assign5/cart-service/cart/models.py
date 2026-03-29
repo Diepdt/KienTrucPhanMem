@@ -17,19 +17,29 @@ class Cart(models.Model):
 class CartItem(models.Model):
     """Item trong giỏ hàng."""
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    book_id = models.IntegerField()
-    book_title = models.CharField(max_length=255, blank=True)   # snapshot
-    book_author = models.CharField(max_length=255, blank=True)  # snapshot
-    book_cover_url = models.URLField(blank=True)  # snapshot của book cover
+    product_type = models.CharField(max_length=50, default='book')
+    product_id = models.IntegerField()
+    product_name = models.CharField(max_length=255, blank=True)
+    product_subtitle = models.CharField(max_length=255, blank=True)
+    product_image_url = models.URLField(blank=True)
+    source_service = models.CharField(max_length=100, blank=True)
+    product_snapshot = models.JSONField(default=dict, blank=True)
+
+    # Legacy snapshot fields for compatibility with existing frontend/services.
+    book_id = models.IntegerField(null=True, blank=True)
+    book_title = models.CharField(max_length=255, blank=True)
+    book_author = models.CharField(max_length=255, blank=True)
+    book_cover_url = models.URLField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField(default=1)
 
     class Meta:
-        unique_together = ['cart', 'book_id']
+        unique_together = ['cart', 'product_type', 'product_id']
 
     @property
     def item_total(self):
         return self.price * self.quantity
 
     def __str__(self):
-        return f"{self.book_title} x{self.quantity}"
+        display_name = self.product_name or self.book_title or f"{self.product_type}:{self.product_id}"
+        return f"{display_name} x{self.quantity}"

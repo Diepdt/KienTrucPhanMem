@@ -41,6 +41,121 @@ def get_book_info(book_id):
     return None
 
 
+def get_cloth_info(cloth_id):
+    """Lấy thông tin quần áo từ cloth-service."""
+    try:
+        resp = http_requests.get(
+            f"{django_settings.CLOTH_SERVICE_URL}/api/clothes/{cloth_id}/",
+            timeout=5
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception as e:
+        logger.error(f"get_cloth_info error: {e}")
+    return None
+
+
+PRODUCT_PROVIDERS = {
+    'book': {
+        'fetch': get_book_info,
+        'service': 'book-service',
+    },
+    'cloth': {
+        'fetch': get_cloth_info,
+        'service': 'cloth-service',
+    },
+}
+
+
+def _normalize_product_payload(product_type, payload):
+    if product_type == 'book':
+        return {
+            'product_type': 'book',
+            'product_id': payload['id'],
+            'product_name': payload.get('title', ''),
+            'product_subtitle': payload.get('author', ''),
+            'product_image_url': payload.get('cover_url', ''),
+            'price': payload.get('price', 0),
+            'stock': payload.get('stock', 0),
+            'product_snapshot': {
+                'author': payload.get('author', ''),
+                'category_id': payload.get('category_id'),
+                'category_name': payload.get('category_name', ''),
+                'description': payload.get('description', ''),
+            },
+            'legacy': {
+                'book_id': payload['id'],
+                'book_title': payload.get('title', ''),
+                'book_author': payload.get('author', ''),
+                'book_cover_url': payload.get('cover_url', ''),
+            },
+        }
+
+    if product_type == 'cloth':
+        subtitle_parts = [payload.get('brand', ''), payload.get('size', ''), payload.get('color', '')]
+        subtitle = ' | '.join([part for part in subtitle_parts if part])
+        return {
+            'product_type': 'cloth',
+            'product_id': payload['id'],
+            'product_name': payload.get('name', ''),
+            'product_subtitle': subtitle,
+            'product_image_url': payload.get('image_url', ''),
+            'price': payload.get('price', 0),
+            'stock': payload.get('stock', 0),
+            'product_snapshot': {
+                'brand': payload.get('brand', ''),
+                'size': payload.get('size', ''),
+                'color': payload.get('color', ''),
+                'material': payload.get('material', ''),
+                'category_id': payload.get('category_id'),
+                'category_name': payload.get('category_name', ''),
+                'attributes': payload.get('attributes', {}),
+                'description': payload.get('description', ''),
+            },
+            'legacy': {
+                'book_id': None,
+                'book_title': payload.get('name', ''),
+                'book_author': subtitle,
+                'book_cover_url': payload.get('image_url', ''),
+            },
+        }
+
+    return None
+
+
+def resolve_product_for_cart(request_data):
+    """Resolve product info from request payload, supporting legacy and generic fields."""
+    product_type = str(request_data.get('product_type', '')).strip().lower()
+    product_id = request_data.get('product_id')
+
+    # Backward-compatible payloads.
+    if not product_type and request_data.get('book_id') is not None:
+        product_type = 'book'
+        product_id = request_data.get('book_id')
+    if not product_type and request_data.get('cloth_id') is not None:
+        product_type = 'cloth'
+        product_id = request_data.get('cloth_id')
+
+    if not product_type:
+        return None, "product_type bắt buộc (book/cloth)", 400
+    if product_type not in PRODUCT_PROVIDERS:
+        return None, f"Loại sản phẩm '{product_type}' chưa được hỗ trợ", 400
+    if product_id is None:
+        return None, "product_id bắt buộc", 400
+
+    provider = PRODUCT_PROVIDERS[product_type]
+    raw = provider['fetch'](product_id)
+    if not raw:
+        return None, "Sản phẩm không tồn tại hoặc không khả dụng", 404
+
+    normalized = _normalize_product_payload(product_type, raw)
+    if not normalized:
+        return None, "Không thể chuẩn hóa dữ liệu sản phẩm", 500
+
+    normalized['source_service'] = provider['service']
+    return normalized, None, 200
+
+
 class CreateCartView(APIView):
     """Tạo giỏ hàng - được gọi tự động bởi customer-service khi đăng ký."""
 
@@ -68,7 +183,7 @@ class GetCartView(APIView):
 
 
 class AddToCartView(APIView):
-    """Thêm sách vào giỏ hàng."""
+    """Thêm sản phẩm vào giỏ hàng (đa loại: book/cloth/...)."""
 
     def post(self, request):
         auth = request.headers.get('Authorization', '')
@@ -76,32 +191,49 @@ class AddToCartView(APIView):
         if not valid:
             return Response({'error': 'Unauthorized'}, status=401)
 
-        book_id = request.data.get('book_id')
-        quantity = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (TypeError, ValueError):
+            return Response({'error': 'quantity không hợp lệ'}, status=400)
+        if quantity < 1:
+            return Response({'error': 'quantity phải lớn hơn 0'}, status=400)
 
-        if not book_id:
-            return Response({'error': 'book_id bắt buộc'}, status=400)
-
-        # Kiểm tra sách có tồn tại và còn hàng không
-        book = get_book_info(book_id)
-        if not book:
-            return Response({'error': 'Sách không tồn tại'}, status=404)
-        if book.get('stock', 0) < quantity:
-            return Response({'error': 'Sách không đủ số lượng trong kho'}, status=400)
+        product, error_message, code = resolve_product_for_cart(request.data)
+        if error_message:
+            return Response({'error': error_message}, status=code)
+        if product.get('stock', 0) < quantity:
+            return Response({'error': 'Sản phẩm không đủ số lượng trong kho'}, status=400)
 
         cart, _ = Cart.objects.get_or_create(customer_id=customer['id'])
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
-            book_id=book_id,
+            product_type=product['product_type'],
+            product_id=product['product_id'],
             defaults={
-                'book_title': book['title'],
-                'book_author': book['author'],
-                'book_cover_url': book.get('cover_url', ''),
-                'price': book['price'],
+                'product_name': product['product_name'],
+                'product_subtitle': product['product_subtitle'],
+                'product_image_url': product['product_image_url'],
+                'source_service': product['source_service'],
+                'product_snapshot': product['product_snapshot'],
+                'book_id': product['legacy']['book_id'],
+                'book_title': product['legacy']['book_title'],
+                'book_author': product['legacy']['book_author'],
+                'book_cover_url': product['legacy']['book_cover_url'],
+                'price': product['price'],
                 'quantity': quantity,
             }
         )
         if not created:
+            cart_item.product_name = product['product_name']
+            cart_item.product_subtitle = product['product_subtitle']
+            cart_item.product_image_url = product['product_image_url']
+            cart_item.source_service = product['source_service']
+            cart_item.product_snapshot = product['product_snapshot']
+            cart_item.book_id = product['legacy']['book_id']
+            cart_item.book_title = product['legacy']['book_title']
+            cart_item.book_author = product['legacy']['book_author']
+            cart_item.book_cover_url = product['legacy']['book_cover_url']
+            cart_item.price = product['price']
             cart_item.quantity += quantity
             cart_item.save()
 
@@ -109,7 +241,7 @@ class AddToCartView(APIView):
 
 
 class UpdateCartItemView(APIView):
-    """Cập nhật số lượng sách trong giỏ."""
+    """Cập nhật số lượng sản phẩm trong giỏ."""
 
     def put(self, request, item_id):
         auth = request.headers.get('Authorization', '')
@@ -124,10 +256,21 @@ class UpdateCartItemView(APIView):
 
         quantity = request.data.get('quantity')
         if quantity is not None:
-            quantity = int(quantity)
+            try:
+                quantity = int(quantity)
+            except (TypeError, ValueError):
+                return Response({'error': 'quantity không hợp lệ'}, status=400)
             if quantity <= 0:
                 item.delete()
                 return Response({'message': 'Đã xóa sản phẩm khỏi giỏ hàng'})
+
+            provider = PRODUCT_PROVIDERS.get(item.product_type)
+            if provider:
+                product_info = provider['fetch'](item.product_id)
+                stock = int((product_info or {}).get('stock', 0))
+                if stock < quantity:
+                    return Response({'error': 'Sản phẩm không đủ số lượng trong kho'}, status=400)
+
             item.quantity = quantity
             item.save()
         return Response(CartItemSerializer(item).data)
@@ -180,40 +323,60 @@ class AddToCartInternalView(APIView):
     được thực hiện bởi network layer (Docker internal network).
 
     POST /api/carts/add-internal/
-    Body: { "customer_id": int, "book_id": int, "quantity": int }
+        Body:
+            - Legacy: { "customer_id": int, "book_id": int, "quantity": int }
+            - Generic: { "customer_id": int, "product_type": "book|cloth", "product_id": int, "quantity": int }
     """
 
     def post(self, request):
         customer_id = request.data.get('customer_id')
-        book_id     = request.data.get('book_id')
-        quantity    = int(request.data.get('quantity', 1))
+        quantity_raw = request.data.get('quantity', 1)
+        try:
+            quantity = int(quantity_raw)
+        except (TypeError, ValueError):
+            return Response({'error': 'quantity không hợp lệ'}, status=400)
 
         if not customer_id:
             return Response({'error': 'customer_id bắt buộc'}, status=400)
-        if not book_id:
-            return Response({'error': 'book_id bắt buộc'}, status=400)
         if quantity < 1:
             return Response({'error': 'quantity phải lớn hơn 0'}, status=400)
 
-        book = get_book_info(book_id)
-        if not book:
-            return Response({'error': 'Sách không tồn tại hoặc không khả dụng'}, status=404)
-        if book.get('stock', 0) < quantity:
-            return Response({'error': 'Sách không đủ số lượng trong kho'}, status=400)
+        product, error_message, code = resolve_product_for_cart(request.data)
+        if error_message:
+            return Response({'error': error_message}, status=code)
+        if product.get('stock', 0) < quantity:
+            return Response({'error': 'Sản phẩm không đủ số lượng trong kho'}, status=400)
 
         cart, _ = Cart.objects.get_or_create(customer_id=customer_id)
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
-            book_id=book_id,
+            product_type=product['product_type'],
+            product_id=product['product_id'],
             defaults={
-                'book_title':  book['title'],
-                'book_author': book['author'],
-                'book_cover_url': book.get('cover_url', ''),
-                'price':       book['price'],
-                'quantity':    quantity,
+                'product_name': product['product_name'],
+                'product_subtitle': product['product_subtitle'],
+                'product_image_url': product['product_image_url'],
+                'source_service': product['source_service'],
+                'product_snapshot': product['product_snapshot'],
+                'book_id': product['legacy']['book_id'],
+                'book_title': product['legacy']['book_title'],
+                'book_author': product['legacy']['book_author'],
+                'book_cover_url': product['legacy']['book_cover_url'],
+                'price': product['price'],
+                'quantity': quantity,
             },
         )
         if not created:
+            cart_item.product_name = product['product_name']
+            cart_item.product_subtitle = product['product_subtitle']
+            cart_item.product_image_url = product['product_image_url']
+            cart_item.source_service = product['source_service']
+            cart_item.product_snapshot = product['product_snapshot']
+            cart_item.book_id = product['legacy']['book_id']
+            cart_item.book_title = product['legacy']['book_title']
+            cart_item.book_author = product['legacy']['book_author']
+            cart_item.book_cover_url = product['legacy']['book_cover_url']
+            cart_item.price = product['price']
             cart_item.quantity += quantity
             cart_item.save()
 

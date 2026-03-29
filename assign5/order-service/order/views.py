@@ -129,7 +129,19 @@ def create_shipment(order_id, shipping_method_id, address):
 
 def update_book_stock(items):
     try:
-        payload = [{'book_id': item['book_id'], 'quantity': item['quantity']} for item in items]
+        payload = []
+        for item in items:
+            product_type = (item.get('product_type') or 'book').lower()
+            if product_type != 'book':
+                continue
+            product_id = item.get('product_id') or item.get('book_id')
+            if product_id is None:
+                continue
+            payload.append({'book_id': product_id, 'quantity': item.get('quantity', 0)})
+
+        if not payload:
+            return True
+
         resp = http_requests.post(
             f"{django_settings.BOOK_SERVICE_URL}/api/books/update-stock/",
             json={'items': payload}, timeout=5)
@@ -137,6 +149,34 @@ def update_book_stock(items):
     except Exception as e:
         logger.error(f"update_book_stock error: {e}")
     return False
+
+
+def update_cloth_stock(items):
+    try:
+        payload = []
+        for item in items:
+            product_type = (item.get('product_type') or '').lower()
+            if product_type != 'cloth':
+                continue
+            product_id = item.get('product_id')
+            if product_id is None:
+                continue
+            payload.append({'cloth_id': product_id, 'quantity': item.get('quantity', 0)})
+
+        if not payload:
+            return True
+
+        resp = http_requests.post(
+            f"{django_settings.CLOTH_SERVICE_URL}/api/clothes/update-stock/",
+            json={'items': payload}, timeout=5)
+        return resp.status_code == 200
+    except Exception as e:
+        logger.error(f"update_cloth_stock error: {e}")
+    return False
+
+
+def update_inventory_stock(items):
+    return update_book_stock(items) and update_cloth_stock(items)
 
 
 def clear_cart(customer_id):
@@ -165,6 +205,17 @@ def get_book_categories(book_ids):
             logger.error(f"get_book_categories error for book_id={book_id}: {e}")
             category_map[book_id] = 'Chưa phân loại'
     return category_map
+
+
+def get_revenue_group_for_item(item, book_category_map):
+    product_type = (item.product_type or 'book').lower()
+    if product_type == 'book' and item.book_id is not None:
+        return book_category_map.get(item.book_id, 'Chưa phân loại')
+
+    if item.product_name:
+        return f"{product_type.title()}: {item.product_name}"
+
+    return f"{product_type.title()}"
 
 
 class CreateOrderView(APIView):
@@ -220,11 +271,23 @@ class CreateOrderView(APIView):
 
         # 5. Tạo order items từ cart
         for item in cart['items']:
+            product_type = (item.get('product_type') or 'book').lower()
+            product_id = item.get('product_id') or item.get('book_id')
+            product_name = item.get('product_name') or item.get('book_title') or ''
+            product_subtitle = item.get('product_subtitle') or item.get('book_author') or ''
+            product_image_url = item.get('product_image_url') or item.get('book_cover_url') or ''
+
             OrderItem.objects.create(
                 order=order,
-                book_id=item['book_id'],
-                book_title=item['book_title'],
-                book_author=item.get('book_author', ''),
+                product_type=product_type,
+                product_id=product_id,
+                product_name=product_name,
+                product_subtitle=product_subtitle,
+                product_image_url=product_image_url,
+                product_snapshot=item.get('product_snapshot') or {},
+                book_id=product_id if product_type == 'book' else None,
+                book_title=product_name if product_type == 'book' else '',
+                book_author=product_subtitle if product_type == 'book' else '',
                 price=item['price'],
                 quantity=item['quantity']
             )
@@ -239,8 +302,8 @@ class CreateOrderView(APIView):
         if not shipment:
             logger.warning(f"Shipment creation failed for order {order.id}")
 
-        # 8. Cập nhật tồn kho sách
-        update_book_stock(cart['items'])
+        # 8. Cập nhật tồn kho theo từng loại sản phẩm
+        update_inventory_stock(cart['items'])
 
         # 9. Xóa giỏ hàng
         clear_cart(customer['id'])
@@ -461,14 +524,15 @@ class AdminOrderSummaryView(APIView):
             for order in range_orders:
                 for item in order.items.all():
                     amount = float(item.price) * int(item.quantity)
-                    line_items.append((item.book_id, amount))
-                    book_ids.add(item.book_id)
+                    line_items.append((item, amount))
+                    if item.book_id is not None:
+                        book_ids.add(item.book_id)
 
             book_category_map = get_book_categories(book_ids)
             category_totals = {}
-            for book_id, amount in line_items:
-                category_name = book_category_map.get(book_id, 'Chưa phân loại')
-                category_totals[category_name] = category_totals.get(category_name, 0.0) + amount
+            for item, amount in line_items:
+                group_name = get_revenue_group_for_item(item, book_category_map)
+                category_totals[group_name] = category_totals.get(group_name, 0.0) + amount
 
             sorted_categories = sorted(
                 category_totals.items(),
