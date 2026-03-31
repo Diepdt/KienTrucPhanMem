@@ -149,3 +149,30 @@
 
 })(jQuery);
 
+// Search Modal Logic
+$(document).ready(function () {
+    // Lấy input và icon trong modal search
+    var $searchModal = $('#searchModal');
+    var $searchInput = $searchModal.find('input[type="search"]');
+    var $searchIcon = $searchModal.find('#search-icon-1');
+
+    // Khi nhấn Enter trong input
+    $searchInput.on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            var keyword = $searchInput.val().trim();
+            if (keyword.length > 0) {
+                window.location.href = '/?q=' + encodeURIComponent(keyword);
+            }
+        }
+    });
+
+    // Khi click icon search
+    $searchIcon.on('click', function () {
+        var keyword = $searchInput.val().trim();
+        if (keyword.length > 0) {
+            window.location.href = '/?q=' + encodeURIComponent(keyword);
+        }
+    });
+});
+

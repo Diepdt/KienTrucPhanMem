@@ -295,6 +295,31 @@ app.get("/customers", async (_req, res) => {
   });
 });
 
+// Lấy thông tin 1 khách hàng
+app.get("/customers/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Thiếu id" });
+  const rows = await query("SELECT id, username, full_name, address, phone FROM customers WHERE id = ? LIMIT 1", [id]);
+  if (rows.length === 0) return res.status(404).json({ message: "Không tìm thấy khách hàng" });
+  const r = rows[0];
+  return res.json({ customer: {
+    id: r.id,
+    username: r.username,
+    fullName: r.full_name,
+    address: r.address,
+    phone: r.phone
+  }});
+});
+
+// Cập nhật thông tin khách hàng
+app.put("/customers/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const { fullName, address, phone } = req.body;
+  if (!id || !fullName) return res.status(400).json({ message: "Thiếu thông tin" });
+  await query("UPDATE customers SET full_name = ?, address = ?, phone = ? WHERE id = ?", [fullName, address || "", phone || "", id]);
+  return res.json({ success: true });
+});
+
 app.use((err, _req, res, _next) => {
   console.error("customer-service error", err);
   res.status(500).json({ message: "Internal server error" });

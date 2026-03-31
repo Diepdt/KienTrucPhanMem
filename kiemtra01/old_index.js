@@ -83,9 +83,7 @@ app.get("/", async (req, res, next) => {
     });
 
     return res.render("client/home/show", {
-      products: (response.data.items || []).map(toOldTemplateProduct),
-      searchMode: q.trim().length > 0,
-      searchKeyword: q
+      products: (response.data.items || []).map(toOldTemplateProduct)
     });
   } catch (error) {
     return next(error);
