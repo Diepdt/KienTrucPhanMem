@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="LaptopShop Admin - Quản lý đơn hàng" />
+    <title>Quản lý Đơn hàng - LaptopShop Admin</title>
+    <link href="/admin/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <style>
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 20px;
+            font-size: 0.78rem; font-weight: 700; letter-spacing: 0.3px;
+        }
+        .status-pending    { background: rgba(251,191,36,0.15);  color: #b45309; }
+        .status-processing { background: rgba(99,102,241,0.12);  color: #4338ca; }
+        .status-shipping   { background: rgba(14,165,233,0.12);  color: #0369a1; }
+        .status-completed  { background: rgba(16,185,129,0.12);  color: #047857; }
+        .status-cancelled  { background: rgba(239,68,68,0.12);   color: #b91c1c; }
+
+        .order-detail-row { display: none; background: #f8fafc !important; }
+        .order-detail-row.show { display: table-row; }
+        .order-detail-inner { padding: 0 !important; }
+        .detail-box { padding: 20px 28px; border-top: 2px solid rgba(99,102,241,0.15); }
+        .detail-item-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .detail-item-row:last-child { border-bottom: none; }
+        .detail-item-row .item-info { flex: 1; }
+        .detail-item-row .item-name { font-weight: 600; font-size: 0.92rem; color: #1e293b; }
+        .detail-item-row .item-sub  { font-size: 0.8rem; color: #64748b; }
+        .detail-item-row .item-price { font-weight: 700; color: #6366f1; white-space: nowrap; }
+
+        .stat-card { border-radius: 16px !important; border: none !important; overflow: hidden; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+
+        .filter-bar { background: white; border-radius: 14px; padding: 16px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 24px; }
+
+        .btn-toggle-detail { background: none; border: none; color: #6366f1; cursor: pointer; font-size: 1.1rem; transition: transform 0.25s; }
+        .btn-toggle-detail.open { transform: rotate(180deg); }
+
+        .table > :not(caption) > * > * { padding: 0.85rem 1rem; }
+        .table thead th { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9; }
+        .table tbody tr.main-row:hover { background: rgba(99,102,241,0.03); }
+
+        .payment-chip { display: inline-flex; align-items: center; gap: 5px; background: #f1f5f9; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; color: #475569; font-weight: 500; }
+
+        select.status-select {
+            border: none; background: transparent; font-size: 0.8rem; font-weight: 700;
+            cursor: pointer; padding: 0; outline: none; color: inherit;
+        }
+    </style>
+</head>
+
+<body class="sb-nav-fixed">
+    <%- include('../layout/header'); -%>
+    <div id="layoutSidenav">
+        <%- include('../layout/sidenav'); -%>
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4 pb-5">
+                    <h1 class="mt-4 fw-bold">Quản lý Đơn hàng</h1>
+                    <ol class="breadcrumb mb-4">
+                        <li class="breadcrumb-item"><a href="/admin">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Đơn hàng</li>
+                    </ol>
+
+                    <%
+                    const allOrders = orders || [];
+                    const counts = {
+                        all: allOrders.length,
+                        pending: allOrders.filter(o => o.status === 'pending').length,
+                        processing: allOrders.filter(o => o.status === 'processing').length,
+                        shipping: allOrders.filter(o => o.status === 'shipping').length,
+                        completed: allOrders.filter(o => o.status === 'completed').length,
+                        cancelled: allOrders.filter(o => o.status === 'cancelled').length,
+                    };
+                    const totalRevenue = allOrders.filter(o => o.status === 'completed').reduce((s,o) => s + Number(o.totalAmount), 0);
+                    %>
+
+                    <!-- Stats Row -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-xl-2 col-md-4 col-6">
+                            <div class="card stat-card text-center p-3" style="background: linear-gradient(135deg,#6366f1,#a855f7); color:white;">
+                                <div class="fs-3 fw-bold"><%= counts.all %></div>
+                                <div class="small opacity-75">Tổng đơn</div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6">
+                            <div class="card stat-card text-center p-3" style="background: linear-gradient(135deg,#f59e0b,#fbbf24); color:white;">
+                                <div class="fs-3 fw-bold"><%= counts.pending %></div>
+                                <div class="small opacity-75">Chờ xử lý</div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6">
+                            <div class="card stat-card text-center p-3" style="background: linear-gradient(135deg,#0ea5e9,#38bdf8); color:white;">
+                                <div class="fs-3 fw-bold"><%= counts.shipping %></div>
+                                <div class="small opacity-75">Đang giao</div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6">
+                            <div class="card stat-card text-center p-3" style="background: linear-gradient(135deg,#10b981,#34d399); color:white;">
+                                <div class="fs-3 fw-bold"><%= counts.completed %></div>
+                                <div class="small opacity-75">Hoàn thành</div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6">
+                            <div class="card stat-card text-center p-3" style="background: linear-gradient(135deg,#ef4444,#f87171); color:white;">
+                                <div class="fs-3 fw-bold"><%= counts.cancelled %></div>
+                                <div class="small opacity-75">Đã huỷ</div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6">
+                            <div class="card stat-card text-center p-3" style="background: linear-gradient(135deg,#1e293b,#334155); color:white;">
+                                <div class="fw-bold" style="font-size:1rem;"><%= new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(totalRevenue) %></div>
+                                <div class="small opacity-75">Doanh thu</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar d-flex align-items-center gap-3 flex-wrap">
+                        <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width:260px; border-radius:10px;" placeholder="🔍  Tìm theo mã, tên, username...">
+                        <select id="statusFilter" class="form-select form-select-sm" style="max-width:180px; border-radius:10px;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="pending">⏳ Chờ xử lý</option>
+                            <option value="processing">⚙️ Đang xử lý</option>
+                            <option value="shipping">🚚 Đang giao</option>
+                            <option value="completed">✅ Hoàn thành</option>
+                            <option value="cancelled">❌ Đã huỷ</option>
+                        </select>
+                        <select id="paymentFilter" class="form-select form-select-sm" style="max-width:180px; border-radius:10px;">
+                            <option value="">Tất cả thanh toán</option>
+                            <option value="cod">💵 COD</option>
+                            <option value="bank_transfer">🏦 Chuyển khoản</option>
+                            <option value="momo">💳 MoMo</option>
+                        </select>
+                        <span class="text-muted small ms-auto" id="orderCount">Hiển thị <strong><%= allOrders.length %></strong> đơn hàng</span>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="card border-0 shadow-sm" style="border-radius:16px; overflow:hidden;">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0" id="ordersTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:40px;"></th>
+                                        <th>Mã đơn</th>
+                                        <th>Khách hàng</th>
+                                        <th>Người nhận</th>
+                                        <th>Thanh toán</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Ngày đặt</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (allOrders.length === 0) { %>
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <div style="font-size:48px; margin-bottom:16px;">📦</div>
+                                            <div class="fw-bold">Chưa có đơn hàng nào</div>
+                                        </td>
+                                    </tr>
+                                    <% } %>
+                                    <% allOrders.forEach((order, idx) => { %>
+                                    <tr class="main-row"
+                                        data-id="<%= order.id %>"
+                                        data-status="<%= order.status %>"
+                                        data-payment="<%= order.paymentMethod %>"
+                                        data-search="<%= order.id %> <%= order.username %> <%= order.receiverName %>">
+
+                                        <td>
+                                            <button class="btn-toggle-detail" onclick="toggleDetail(<%= idx %>)" id="btn-<%= idx %>">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </td>
+                                        <td><span class="fw-bold text-primary">#<%= order.id %></span></td>
+                                        <td>
+                                            <div class="fw-bold text-dark" style="font-size:0.9rem;"><%= order.fullName %></div>
+                                            <div class="text-muted" style="font-size:0.78rem;">@<%= order.username %></div>
+                                        </td>
+                                        <td>
+                                            <div style="font-size:0.88rem;"><%= order.receiverName %></div>
+                                            <div class="text-muted" style="font-size:0.78rem;"><%= order.receiverPhone %></div>
+                                        </td>
+                                        <td>
+                                            <span class="payment-chip">
+                                                <% if(order.paymentMethod === 'cod') { %>💵 COD
+                                                <% } else if(order.paymentMethod === 'bank_transfer') { %>🏦 Chuyển khoản
+                                                <% } else { %>💳 MoMo<% } %>
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold text-primary"><%= new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(order.totalAmount) %></td>
+                                        <td style="font-size:0.82rem; color:#64748b;"><%= new Date(order.createdAt).toLocaleString('vi-VN') %></td>
+                                        <td>
+                                            <span class="status-badge status-<%= order.status %>">
+                                                <% if(order.status==='pending')    { %>⏳ Chờ xử lý
+                                                <% } else if(order.status==='processing') { %>⚙️ Đang xử lý
+                                                <% } else if(order.status==='shipping')   { %>🚚 Đang giao
+                                                <% } else if(order.status==='completed')  { %>✅ Hoàn thành
+                                                <% } else { %>❌ Đã huỷ<% } %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <form method="POST" action="/admin/order/<%= order.id %>/status" class="d-flex gap-1 align-items-center">
+                                                <select name="status" class="form-select form-select-sm" style="border-radius:8px; font-size:0.82rem; min-width:140px;">
+                                                    <option value="pending"    <%= order.status==='pending'    ? 'selected':'' %>>⏳ Chờ xử lý</option>
+                                                    <option value="processing" <%= order.status==='processing' ? 'selected':'' %>>⚙️ Đang xử lý</option>
+                                                    <option value="shipping"   <%= order.status==='shipping'   ? 'selected':'' %>>🚚 Đang giao</option>
+                                                    <option value="completed"  <%= order.status==='completed'  ? 'selected':'' %>>✅ Hoàn thành</option>
+                                                    <option value="cancelled"  <%= order.status==='cancelled'  ? 'selected':'' %>>❌ Đã huỷ</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-sm btn-primary px-2" style="border-radius:8px; white-space:nowrap;">Cập nhật</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Detail Row -->
+                                    <tr class="order-detail-row" id="detail-<%= idx %>">
+                                        <td colspan="9" class="order-detail-inner p-0">
+                                            <div class="detail-box">
+                                                <div class="row g-4">
+                                                    <div class="col-md-4">
+                                                        <div class="fw-bold text-secondary small mb-2 text-uppercase">📍 Địa chỉ giao hàng</div>
+                                                        <div class="text-dark"><%= order.receiverAddress %></div>
+                                                        <% if(order.note) { %>
+                                                        <div class="text-muted mt-2 fst-italic small">📝 <%= order.note %></div>
+                                                        <% } %>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <div class="fw-bold text-secondary small mb-2 text-uppercase">🛒 Sản phẩm (<%= order.items ? order.items.length : 0 %>)</div>
+                                                        <% if(order.items && order.items.length > 0) { %>
+                                                            <% order.items.forEach(item => { %>
+                                                            <div class="detail-item-row">
+                                                                <div class="item-info">
+                                                                    <div class="item-name"><%= item.item_name %></div>
+                                                                    <div class="item-sub">Mã SP: #<%= item.item_id %> &nbsp;·&nbsp; Số lượng: × <%= item.quantity %></div>
+                                                                </div>
+                                                                <div class="item-price"><%= new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(item.item_price) %></div>
+                                                                <div class="fw-bold" style="min-width:120px; text-align:right;">
+                                                                    = <%= new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(item.item_price * item.quantity) %>
+                                                                </div>
+                                                            </div>
+                                                            <% }) %>
+                                                        <% } else { %>
+                                                            <div class="text-muted small">Không có sản phẩm</div>
+                                                        <% } %>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+            <%- include('../layout/footer'); -%>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="/admin/js/scripts.js"></script>
+    <script>
+        // Toggle detail row
+        function toggleDetail(idx) {
+            const row = document.getElementById('detail-' + idx);
+            const btn = document.getElementById('btn-' + idx);
+            row.classList.toggle('show');
+            btn.classList.toggle('open');
+        }
+
+        // Filter logic
+        const searchInput    = document.getElementById('searchInput');
+        const statusFilter   = document.getElementById('statusFilter');
+        const paymentFilter  = document.getElementById('paymentFilter');
+        const orderCount     = document.getElementById('orderCount');
+
+        function applyFilters() {
+            const search  = searchInput.value.toLowerCase();
+            const status  = statusFilter.value;
+            const payment = paymentFilter.value;
+
+            const mainRows  = document.querySelectorAll('tr.main-row');
+            let visible = 0;
+
+            mainRows.forEach(row => {
+                const rowStatus  = row.dataset.status;
+                const rowPayment = row.dataset.payment;
+                const rowSearch  = row.dataset.search.toLowerCase();
+                const idx        = row.dataset.id;
+
+                const matchSearch  = !search  || rowSearch.includes(search);
+                const matchStatus  = !status  || rowStatus  === status;
+                const matchPayment = !payment || rowPayment === payment;
+
+                const show = matchSearch && matchStatus && matchPayment;
+                row.style.display = show ? '' : 'none';
+
+                // Also hide detail row when parent is hidden
+                const detailRows = document.querySelectorAll('tr.order-detail-row');
+                detailRows.forEach(dr => {
+                    if (!show) dr.style.display = 'none';
+                });
+
+                if (show) visible++;
+            });
+
+            orderCount.innerHTML = 'Hiển thị <strong>' + visible + '</strong> đơn hàng';
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+        paymentFilter.addEventListener('change', applyFilters);
+    </script>
+</body>
+</html>

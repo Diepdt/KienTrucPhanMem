@@ -1,0 +1,10 @@
+body { font-family: Arial, sans-serif; background: #f6f8fa; }
+.sb-topnav { min-height: 56px; }
+#layoutSidenav { display: flex; }
+#layoutSidenav_nav { width: 230px; min-height: calc(100vh - 56px); background: #212529; }
+#layoutSidenav_content { flex: 1; }
+.sb-sidenav .nav-link { color: #fff; padding: 10px 16px; display: block; text-decoration: none; }
+.sb-sidenav .nav-link:hover { background: #343a40; }
+.sb-sidenav-menu-heading { color: #adb5bd; padding: 12px 16px 6px; font-size: 12px; text-transform: uppercase; }
+.sb-sidenav-footer { color: #adb5bd; padding: 16px; font-size: 12px; }
+.table td, .table th { vertical-align: middle; }

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="DiepDT - Dự án laptopshop" />
+    <meta name="author" content="D" />
+    <title>Manage User - DiepDT</title>
+    <link href="/admin/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+
+<body class="sb-nav-fixed">
+    <%- include('../layout/header'); -%>
+        <div id="layoutSidenav">
+            <%- include('../layout/sidenav'); -%>
+                <div id="layoutSidenav_content">
+                    <main>
+                        <div class="container-fluid px-4">
+                            <h1 class="mt-4">Manage Products</h1>
+                            <ol class="breadcrumb mb-4">
+                                <li class="breadcrumb-item"><a href="/admin">Dashboard</a></li>
+                                <li class="breadcrumb-item active">Product</li>
+                            </ol>
+                            <div style="display:flex; justify-content: space-between; align-self: center;">
+                                <h5>List Product:</h5>
+                                <div>
+                                    <a class="btn btn-warning" href="/admin/create-product">Create a new
+                                        product</a>
+                                </div>
+                            </div>
+                            <hr>
+                            <div>
+                                <table class="table table-hover table-striped table-boreded">
+                                    <thead>
+                                        <th>ID</th>
+                                        <th>Type</th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                                        <th>Detail description</th>
+                                        <th>Short description</th>
+                                        <th>Quantity</th>
+                                        <th>Sole</th>
+                                        <th>Factory</th>
+                                        <th>Target</th>
+                                    </thead>
+                                    <tbody>
+                                        <% products.forEach( function (product) { %>
+                                            <tr>
+                                                <td>
+                                                    <%= product.id %>
+                                                </td>
+                                                <td>
+                                                    <%= product.type %>
+                                                </td>
+                                                <td>
+                                                    <%= product.name %>
+                                                </td>
+                                                <td>
+                                                    <%= product.price %>
+                                                </td>
+                                                <td>
+                                                    <%= product.detailDesc %>
+                                                </td>
+                                                <td>
+                                                    <%= product.shortDesc %>
+                                                </td>
+                                                <td>
+                                                    <%= product.quantity %>
+                                                </td>
+                                                <td>
+                                                    <%= product.sold %>
+                                                </td>
+                                                <td>
+                                                    <%= product.factory %>
+                                                </td>
+                                                <td>
+                                                    <%= product.target %>
+                                                </td>
+                                                <td>
+                                                    <div style="display: flex; gap: 10px;">
+                                                        <form action="/admin/update-product/<%= product.id %>"
+                                                            method="get">
+                                                            <button type="submit" class="btn btn-info">View</button>
+                                                        </form>
+                                                        <form action="/admin/delete-product/<%= product.id %>"
+                                                            method="post">
+                                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </main>
+                    <%- include('../layout/footer'); -%>
+                </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
+        <script src="/admin/js/scripts.js"></script>
+</body>
+
+</html>

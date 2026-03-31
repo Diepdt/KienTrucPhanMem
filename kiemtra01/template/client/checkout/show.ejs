@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>Thanh toán - LaptopShop</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/client/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/client/css/style.css" rel="stylesheet">
+    <style>
+        .checkout-step {
+            display: flex; align-items: center; gap: 12px;
+            background: white; border-radius: 16px; padding: 16px 20px;
+            margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-left: 4px solid transparent; transition: border-color 0.3s;
+        }
+        .checkout-step .step-icon {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 18px; flex-shrink: 0;
+        }
+        .payment-option { cursor: pointer; }
+        .payment-option input[type="radio"] { display: none; }
+        .payment-option .option-card {
+            border: 2px solid #e2e8f0; border-radius: 14px; padding: 14px 18px;
+            display: flex; align-items: center; gap: 14px; transition: all 0.25s;
+        }
+        .payment-option input[type="radio"]:checked + .option-card {
+            border-color: #6366f1; background: rgba(99,102,241,0.06);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        }
+        .payment-option .option-card .option-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+        }
+        .order-summary-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+        .summary-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .summary-item:last-child { border-bottom: none; }
+        .summary-item img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
+        .total-row { background: linear-gradient(135deg, #6366f1, #a855f7); border-radius: 14px; color: white; padding: 16px 20px; }
+        .btn-checkout-submit {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white; border: none; border-radius: 14px;
+            padding: 16px; font-size: 16px; font-weight: 700;
+            letter-spacing: 0.5px; width: 100%;
+            transition: all 0.3s; box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+        }
+        .btn-checkout-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.5); color: white; }
+        .form-control, .form-select {
+            border-radius: 12px; border: 2px solid #e2e8f0;
+            padding: 12px 16px; transition: all 0.25s;
+            background: #fafafe;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+            background: white;
+        }
+        .page-header-checkout {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            padding: 60px 0 40px; margin-top: 120px;
+        }
+        .breadcrumb-nav a { color: rgba(255,255,255,0.75); text-decoration: none; }
+        .breadcrumb-nav span { color: white; }
+        .section-card {
+            background: white; border-radius: 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            padding: 28px;
+        }
+        .section-title {
+            font-size: 1.1rem; font-weight: 700; color: #1e293b;
+            margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+        }
+        .section-title i { color: #6366f1; }
+    </style>
+</head>
+<body style="background: #f4f7fe; font-family: 'Outfit', sans-serif;">
+
+    <%- include('../layout/header'); -%>
+
+    <!-- Page Header -->
+    <div class="page-header-checkout">
+        <div class="container">
+            <h1 class="text-white fw-bold mb-1">Thanh toán</h1>
+            <nav class="breadcrumb-nav">
+                <a href="/">Trang chủ</a>
+                <span class="mx-2">/</span>
+                <a href="/cart">Giỏ hàng</a>
+                <span class="mx-2">/</span>
+                <span>Thanh toán</span>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container py-5">
+        <!-- Error alerts -->
+        <% if (errors && errors.length > 0) { %>
+        <div class="alert alert-danger rounded-3 mb-4">
+            <% errors.forEach(e => { %><div><i class="fas fa-exclamation-circle me-2"></i><%= e %></div><% }) %>
+        </div>
+        <% } %>
+
+        <form method="POST" action="/checkout" id="checkout-form">
+            <div class="row g-4">
+                <!-- Left: Form -->
+                <div class="col-lg-7">
+                    <!-- Receiver Info -->
+                    <div class="section-card mb-4">
+                        <div class="section-title">
+                            <i class="fas fa-map-marker-alt"></i> Thông tin giao hàng
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-600 text-secondary small">Họ và tên người nhận *</label>
+                                <input type="text" name="receiverName" class="form-control" placeholder="Nguyễn Văn A"
+                                    value="<%= oldData.receiverName || customer.fullName || '' %>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600 text-secondary small">Số điện thoại *</label>
+                                <input type="tel" name="receiverPhone" class="form-control" placeholder="09xxxxxxxx"
+                                    value="<%= oldData.receiverPhone || customer.phone || '' %>" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-600 text-secondary small">Địa chỉ nhận hàng *</label>
+                                <input type="text" name="receiverAddress" class="form-control" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+                                    value="<%= oldData.receiverAddress || customer.address || '' %>" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-600 text-secondary small">Ghi chú (tuỳ chọn)</label>
+                                <textarea name="note" class="form-control" rows="2" placeholder="Ghi chú cho đơn hàng..."><%= oldData.note || '' %></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="section-card">
+                        <div class="section-title">
+                            <i class="fas fa-credit-card"></i> Phương thức thanh toán
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="cod" checked>
+                                <div class="option-card">
+                                    <div class="option-icon bg-warning bg-opacity-15">💵</div>
+                                    <div>
+                                        <div class="fw-bold">Thanh toán khi nhận hàng (COD)</div>
+                                        <div class="text-muted small">Trả tiền mặt khi nhận được hàng</div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="bank_transfer">
+                                <div class="option-card">
+                                    <div class="option-icon bg-success bg-opacity-15">🏦</div>
+                                    <div>
+                                        <div class="fw-bold">Chuyển khoản ngân hàng</div>
+                                        <div class="text-muted small">Chúng tôi sẽ liên hệ xác nhận sau khi đặt hàng</div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="momo">
+                                <div class="option-card">
+                                    <div class="option-icon" style="background: rgba(209,0,100,0.1);">💳</div>
+                                    <div>
+                                        <div class="fw-bold">Ví MoMo</div>
+                                        <div class="text-muted small">Thanh toán nhanh qua ví điện tử MoMo</div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Order Summary -->
+                <div class="col-lg-5">
+                    <div class="order-summary-card p-4 sticky-top" style="top: 130px;">
+                        <h5 class="fw-bold mb-3">Đơn hàng của bạn (<%= cartItems.length %> sản phẩm)</h5>
+                        <div class="mb-3">
+                            <% cartItems.forEach(item => { %>
+                            <div class="summary-item">
+                                <img src="<%= item.image %>" alt="<%= item.name %>">
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-truncate" style="max-width: 180px;"><%= item.name %></div>
+                                    <div class="text-muted small">x<%= item.cartQuantity %></div>
+                                </div>
+                                <div class="fw-bold text-nowrap text-primary">
+                                    <%= new Intl.NumberFormat('vi-VN', {style:'currency',currency:'VND'}).format(item.price * item.cartQuantity) %>
+                                </div>
+                            </div>
+                            <% }) %>
+                        </div>
+
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span>Tạm tính</span>
+                            <span><%= new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(total) %></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 text-muted">
+                            <span>Phí vận chuyển</span>
+                            <span class="text-success fw-bold">Miễn phí</span>
+                        </div>
+                        <div class="total-row d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-5">Tổng cộng</span>
+                            <span class="fw-bold fs-4"><%= new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(total) %></span>
+                        </div>
+
+                        <button type="submit" class="btn-checkout-submit">
+                            <i class="fas fa-shopping-bag me-2"></i> Đặt hàng ngay
+                        </button>
+                        <a href="/cart" class="btn btn-light w-100 mt-2 rounded-3">
+                            <i class="fas fa-arrow-left me-2"></i>Quay lại giỏ hàng
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <%- include('../layout/footer'); -%>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/client/js/main.js"></script>
+</body>
+</html>

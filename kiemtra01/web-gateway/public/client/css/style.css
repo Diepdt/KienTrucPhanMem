@@ -1,0 +1,1 @@
+/* Placeholder file to avoid missing static errors in template references. */

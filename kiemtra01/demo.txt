@@ -1,0 +1,7 @@
+
+Chạy:
+- docker compose up --build -d
+
+Truy cập:
+- Customer UI: http://localhost:3200
+- Staff UI: http://localhost:3200/admin
