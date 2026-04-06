@@ -27,6 +27,14 @@
                                 <div class="card-body">
                                     <form onsubmit="event.preventDefault(); createCategory();">
                                         <div class="mb-3">
+                                            <label class="form-label">Product Type</label>
+                                            <select id="c-product-type" class="form-select" onchange="loadCategories();" required>
+                                                <option value="">-- Select Product Type --</option>
+                                                <option value="book">Book</option>
+                                                <option value="cloth">Cloth</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
                                             <label class="form-label">Name</label>
                                             <input id="c-name" type="text" class="form-control" required>
                                         </div>
@@ -65,7 +73,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="admin-category-list-body">
-                                            <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                                            <tr><td colspan="5" class="text-center">Vui lòng chọn Product Type bên trái</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -82,6 +90,7 @@
     <script>
         let flatCategories = [];
         let editingCategoryId = null;
+        let currentProductType = 'book'; // Default product type
 
         function showCategoryError(message) {
             const el = document.getElementById('category-form-error');
@@ -102,6 +111,7 @@
                     id: category.id,
                     name: category.name,
                     description: category.description || '',
+                    product_type: category.product_type || '',
                     parentId: category.parent || null,
                     parentName
                 });
@@ -151,6 +161,7 @@
             editingCategoryId = id;
             document.getElementById('c-name').value = target.name || '';
             document.getElementById('c-description').value = target.description || '';
+            document.getElementById('c-product-type').value = target.product_type || currentProductType;
             renderParentOptions();
             document.getElementById('c-parent').value = target.parentId ? String(target.parentId) : '';
 
@@ -173,10 +184,18 @@
 
         async function loadCategories() {
             const body = document.getElementById('admin-category-list-body');
+            const productType = document.getElementById('c-product-type').value;
+            
+            if (!productType) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Vui lòng chọn Product Type</td></tr>';
+                return;
+            }
+            
+            currentProductType = productType;
             body.innerHTML = '<tr><td colspan="4" class="text-center">Đang tải...</td></tr>';
 
             try {
-                const res = await fetch('/api/categories/');
+                const res = await fetch(`/api/categories/?product_type=${productType}`);
                 const data = await res.json();
                 if (!res.ok || !Array.isArray(data)) throw new Error('Không thể tải danh mục');
 
@@ -200,11 +219,17 @@
             const payload = {
                 name: document.getElementById('c-name').value.trim(),
                 description: document.getElementById('c-description').value.trim(),
+                product_type: document.getElementById('c-product-type').value,
                 parent: document.getElementById('c-parent').value ? Number(document.getElementById('c-parent').value) : null,
             };
 
             if (!payload.name) {
                 showCategoryError('Tên category không được để trống.');
+                return;
+            }
+
+            if (!payload.product_type) {
+                showCategoryError('Vui lòng chọn Product Type.');
                 return;
             }
 
@@ -259,7 +284,14 @@
             await loadCategories();
         }
 
-        loadCategories();
+        // Initialize page: set default product_type and load categories
+        window.addEventListener('DOMContentLoaded', function() {
+            const productTypeSelect = document.getElementById('c-product-type');
+            if (productTypeSelect) {
+                productTypeSelect.value = currentProductType;
+                loadCategories();
+            }
+        });
     </script>
 </body>
 </html>

@@ -64,8 +64,9 @@
 
         async function loadCategoryOptions() {
             const select = document.getElementById('p-category');
+            const type = document.getElementById('p-type').value;
             try {
-                const res = await fetch('/api/categories/');
+                const res = await fetch(`/api/categories/?product_type=${type}`);
                 const data = await res.json();
                 if (!res.ok || !Array.isArray(data)) {
                     throw new Error('Không tải được category');
@@ -103,6 +104,9 @@
                 clothFields.classList.add('d-none');
                 subtitleInput.required = true;
             }
+            
+            // Reload categories when product type changes
+            loadCategoryOptions();
         }
 
         async function createProduct() {
