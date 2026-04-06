@@ -23,21 +23,63 @@
                                 <select id="p-type" class="form-select" onchange="toggleProductTypeFields()">
                                     <option value="book">Book</option>
                                     <option value="cloth">Cloth</option>
+                                    <option value="laptop">Laptop</option>
+                                    <option value="mobile">Mobile</option>
                                 </select>
                             </div>
 
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Title / Name:</label><input id="p-title" type="text" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label" id="p-subtitle-label">Author:</label><input id="p-subtitle" type="text" class="form-control" required></div></div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div></div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div></div>
-                            <div class="mb-3"><label class="form-label" id="p-image-label">Cover URL:</label><input id="p-image" type="url" class="form-control"></div>
+                            <!-- BOOK Fields -->
+                            <div id="book-fields">
+                                <div class="row"><div class="mb-3 col-6"><label class="form-label">Title:</label><input id="b-title" type="text" class="form-control" data-required="true"></div><div class="mb-3 col-6"><label class="form-label">Author:</label><input id="b-author" type="text" class="form-control" data-required="true"></div></div>
+                            </div>
 
+                            <!-- CLOTH Fields -->
                             <div id="cloth-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Name:</label><input id="c-name" type="text" class="form-control" data-required="true"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Brand:</label><input id="c-brand" type="text" class="form-control"></div>
                                 <div class="mb-3 col-6"><label class="form-label">Size:</label><input id="c-size" type="text" class="form-control"></div>
                                 <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="c-color" type="text" class="form-control"></div>
                                 <div class="mb-3 col-6"><label class="form-label">Material:</label><input id="c-material" type="text" class="form-control"></div>
                             </div>
 
+                            <!-- LAPTOP Fields -->
+                            <div id="laptop-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Name:</label><input id="l-name" type="text" class="form-control" data-required="true"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Brand:</label><input id="l-brand" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Model:</label><input id="l-model" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Processor:</label><input id="l-processor" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">RAM:</label><input id="l-ram" type="text" class="form-control" placeholder="e.g., 16GB DDR4"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Storage:</label><input id="l-storage" type="text" class="form-control" placeholder="e.g., 512GB SSD"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Size:</label><input id="l-display-size" type="text" class="form-control" placeholder="e.g., 15.6 inches"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Type:</label><input id="l-display-type" type="text" class="form-control" placeholder="e.g., IPS"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Graphics:</label><input id="l-graphics" type="text" class="form-control" placeholder="e.g., NVIDIA RTX 4050"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Battery:</label><input id="l-battery" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Weight:</label><input id="l-weight" type="text" class="form-control" placeholder="e.g., 1.8kg"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="l-color" type="text" class="form-control"></div>
+                            </div>
+
+                            <!-- MOBILE Fields -->
+                            <div id="mobile-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Name:</label><input id="m-name" type="text" class="form-control" data-required="true"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Brand:</label><input id="m-brand" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Model:</label><input id="m-model" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">OS:</label><input id="m-os" type="text" class="form-control" placeholder="e.g., iOS, Android"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Processor:</label><input id="m-processor" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">RAM:</label><input id="m-ram" type="text" class="form-control" placeholder="e.g., 12GB"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Storage:</label><input id="m-storage" type="text" class="form-control" placeholder="e.g., 256GB"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Size:</label><input id="m-display-size" type="text" class="form-control" placeholder="e.g., 6.7 inches"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Type:</label><input id="m-display-type" type="text" class="form-control" placeholder="e.g., AMOLED"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Camera:</label><input id="m-camera" type="text" class="form-control" placeholder="e.g., 108MP"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Battery:</label><input id="m-battery" type="text" class="form-control" placeholder="e.g., 5000mAh"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="m-color" type="text" class="form-control"></div>
+                            </div>
+
+                            <!-- COMMON Fields -->
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div></div>
+                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div></div>
+                            <div class="mb-3"><label class="form-label">Image URL:</label><input id="p-image" type="url" class="form-control"></div>
                             <div class="mb-3"><label class="form-label">Description:</label><textarea id="p-desc" class="form-control" rows="3"></textarea></div>
+
                             <div id="product-create-error" class="alert alert-danger d-none py-2 small"></div>
                             <div class="mb-3"><button type="submit" class="btn btn-warning">Submit</button></div>
                         </form>
@@ -69,7 +111,7 @@
                 const res = await fetch(`/api/categories/?product_type=${type}`);
                 const data = await res.json();
                 if (!res.ok || !Array.isArray(data)) {
-                    throw new Error('Không tải được category');
+                    throw new Error('Unable to load categories');
                 }
 
                 const flat = flattenCategories(data);
@@ -88,22 +130,41 @@
 
         function toggleProductTypeFields() {
             const type = document.getElementById('p-type').value;
-            const subtitleLabel = document.getElementById('p-subtitle-label');
-            const imageLabel = document.getElementById('p-image-label');
-            const clothFields = document.getElementById('cloth-fields');
-            const subtitleInput = document.getElementById('p-subtitle');
-
-            if (type === 'cloth') {
-                subtitleLabel.textContent = 'Brand:';
-                imageLabel.textContent = 'Image URL:';
-                clothFields.classList.remove('d-none');
-                subtitleInput.required = false;
-            } else {
-                subtitleLabel.textContent = 'Author:';
-                imageLabel.textContent = 'Cover URL:';
-                clothFields.classList.add('d-none');
-                subtitleInput.required = true;
+            
+            // Hide all type-specific fields
+            document.getElementById('book-fields').classList.add('d-none');
+            document.getElementById('cloth-fields').classList.add('d-none');
+            document.getElementById('laptop-fields').classList.add('d-none');
+            document.getElementById('mobile-fields').classList.add('d-none');
+            
+            // Show the selected type's fields and update required attributes
+            switch (type) {
+                case 'book':
+                    document.getElementById('book-fields').classList.remove('d-none');
+                    document.getElementById('b-title').setAttribute('required', 'required');
+                    document.getElementById('b-author').setAttribute('required', 'required');
+                    break;
+                case 'cloth':
+                    document.getElementById('cloth-fields').classList.remove('d-none');
+                    document.getElementById('c-name').setAttribute('required', 'required');
+                    break;
+                case 'laptop':
+                    document.getElementById('laptop-fields').classList.remove('d-none');
+                    document.getElementById('l-name').setAttribute('required', 'required');
+                    break;
+                case 'mobile':
+                    document.getElementById('mobile-fields').classList.remove('d-none');
+                    document.getElementById('m-name').setAttribute('required', 'required');
+                    break;
             }
+            
+            // Remove required from hidden fields
+            const allInputs = document.querySelectorAll('[data-required="true"]');
+            allInputs.forEach(input => {
+                if (input.parentElement.closest('.d-none')) {
+                    input.removeAttribute('required');
+                }
+            });
             
             // Reload categories when product type changes
             loadCategoryOptions();
@@ -117,31 +178,120 @@
             }
 
             const type = document.getElementById('p-type').value;
+            
+            // Check for empty price and stock first
+            const price = document.getElementById('p-price').value.trim();
+            const stock = document.getElementById('p-stock').value.trim();
+            
+            if (!price) {
+                showCreateError('Vui lòng nhập giá sản phẩm.');
+                return;
+            }
+            
+            if (!stock) {
+                showCreateError('Vui lòng nhập số lượng tồn kho.');
+                return;
+            }
+
             const common = {
-                price: document.getElementById('p-price').value,
-                stock: Number(document.getElementById('p-stock').value || 0),
+                price: price,
+                stock: Number(stock || 0),
                 category_id: document.getElementById('p-category').value ? Number(document.getElementById('p-category').value) : null,
                 description: document.getElementById('p-desc').value.trim(),
+                image_url: document.getElementById('p-image').value.trim(),
             };
 
-            const payload = type === 'cloth'
-                ? {
-                    name: document.getElementById('p-title').value.trim(),
-                    brand: document.getElementById('p-subtitle').value.trim(),
-                    image_url: document.getElementById('p-image').value.trim(),
+            let payload, endpoint;
+
+            if (type === 'book') {
+                const title = document.getElementById('b-title').value.trim();
+                const author = document.getElementById('b-author').value.trim();
+                
+                if (!title) {
+                    showCreateError('Vui lòng nhập tiêu đề sách.');
+                    return;
+                }
+                if (!author) {
+                    showCreateError('Vui lòng nhập tên tác giả.');
+                    return;
+                }
+                
+                payload = {
+                    title: title,
+                    author: author,
+                    cover_url: document.getElementById('p-image').value.trim(),
+                    ...common,
+                };
+                endpoint = '/api/books/';
+
+            } else if (type === 'cloth') {
+                const name = document.getElementById('c-name').value.trim();
+                
+                if (!name) {
+                    showCreateError('Vui lòng nhập tên sản phẩm quần áo.');
+                    return;
+                }
+                
+                payload = {
+                    name: name,
+                    brand: document.getElementById('c-brand').value.trim(),
                     size: document.getElementById('c-size').value.trim(),
                     color: document.getElementById('c-color').value.trim(),
                     material: document.getElementById('c-material').value.trim(),
                     ...common,
+                };
+                endpoint = '/api/clothes/';
+
+            } else if (type === 'laptop') {
+                const name = document.getElementById('l-name').value.trim();
+                
+                if (!name) {
+                    showCreateError('Vui lòng nhập tên sản phẩm laptop.');
+                    return;
                 }
-                : {
-                    title: document.getElementById('p-title').value.trim(),
-                    author: document.getElementById('p-subtitle').value.trim(),
-                    cover_url: document.getElementById('p-image').value.trim(),
+                
+                payload = {
+                    name: name,
+                    brand: document.getElementById('l-brand').value.trim(),
+                    model: document.getElementById('l-model').value.trim(),
+                    processor: document.getElementById('l-processor').value.trim(),
+                    ram: document.getElementById('l-ram').value.trim(),
+                    storage: document.getElementById('l-storage').value.trim(),
+                    display_size: document.getElementById('l-display-size').value.trim(),
+                    display_type: document.getElementById('l-display-type').value.trim(),
+                    graphics: document.getElementById('l-graphics').value.trim(),
+                    battery: document.getElementById('l-battery').value.trim(),
+                    weight: document.getElementById('l-weight').value.trim(),
+                    color: document.getElementById('l-color').value.trim(),
                     ...common,
                 };
+                endpoint = '/api/laptops/';
 
-            const endpoint = type === 'cloth' ? '/api/clothes/' : '/api/books/';
+            } else if (type === 'mobile') {
+                const name = document.getElementById('m-name').value.trim();
+                
+                if (!name) {
+                    showCreateError('Vui lòng nhập tên sản phẩm điện thoại.');
+                    return;
+                }
+                
+                payload = {
+                    name: name,
+                    brand: document.getElementById('m-brand').value.trim(),
+                    model: document.getElementById('m-model').value.trim(),
+                    os: document.getElementById('m-os').value.trim(),
+                    processor: document.getElementById('m-processor').value.trim(),
+                    ram: document.getElementById('m-ram').value.trim(),
+                    storage: document.getElementById('m-storage').value.trim(),
+                    display_size: document.getElementById('m-display-size').value.trim(),
+                    display_type: document.getElementById('m-display-type').value.trim(),
+                    camera: document.getElementById('m-camera').value.trim(),
+                    battery: document.getElementById('m-battery').value.trim(),
+                    color: document.getElementById('m-color').value.trim(),
+                    ...common,
+                };
+                endpoint = '/api/mobiles/';
+            }
 
             const res = await fetch(endpoint, {
                 method: 'POST',

@@ -4,6 +4,8 @@ class Category(models.Model):
     PRODUCT_TYPES = [
         ('book', 'Book'),
         ('cloth', 'Cloth'),
+        ('laptop', 'Laptop'),
+        ('mobile', 'Mobile'),
     ]
     
     name = models.CharField(max_length=255)

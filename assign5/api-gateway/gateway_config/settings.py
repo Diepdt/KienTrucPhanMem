@@ -57,6 +57,8 @@ COMMENT_SERVICE_URL = os.environ.get('COMMENT_SERVICE_URL', 'http://comment-rate
 RECOMMENDER_SERVICE_URL = os.environ.get('RECOMMENDER_SERVICE_URL', 'http://recommender-ai-service:8011')
 AGENT_SERVICE_URL       = os.environ.get('AGENT_SERVICE_URL',       'http://agent-service:8012')
 CLOTH_SERVICE_URL       = os.environ.get('CLOTH_SERVICE_URL',       'http://cloth-service:8013')
+LAPTOP_SERVICE_URL      = os.environ.get('LAPTOP_SERVICE_URL',      'http://laptop-service:8014')
+MOBILE_SERVICE_URL      = os.environ.get('MOBILE_SERVICE_URL',      'http://mobile-service:8015')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],

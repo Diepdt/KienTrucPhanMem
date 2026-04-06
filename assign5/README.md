@@ -4,7 +4,7 @@ Hệ thống BookStore phân rã thành Microservices sử dụng Django REST Fr
 
 ---
 
-## 1. Kiến trúc tổng thể
+## 1. Kiến trúc tổng thể:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

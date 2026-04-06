@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -23,17 +23,63 @@
                                 <select id="p-type" class="form-select" disabled>
                                     <option value="book">Book</option>
                                     <option value="cloth">Cloth</option>
+                                    <option value="laptop">Laptop</option>
+                                    <option value="mobile">Mobile</option>
                                 </select>
                             </div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Title / Name:</label><input id="p-title" type="text" class="form-control"></div><div class="mb-3 col-6"><label class="form-label" id="p-subtitle-label">Author:</label><input id="p-subtitle" type="text" class="form-control"></div></div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control"></div><div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control"></div></div>
-                            <div class="row"><div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div></div>
-                            <div class="mb-3"><label class="form-label" id="p-image-label">Cover URL:</label><input id="p-image" type="url" class="form-control"></div>
+
+                            <!-- Common dynamic basic fields -->
+                            <div class="row">
+                                <div class="mb-3 col-6"><label class="form-label">Name/Title:</label><input id="p-title" type="text" class="form-control" required></div>
+                                <div class="mb-3 col-6"><label class="form-label" id="p-subtitle-label">Author/Brand:</label><input id="p-subtitle" type="text" class="form-control"></div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div>
+                                <div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div>
+                            </div>
+                            <div class="row">
+                                <div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" id="p-image-label">Cover/Image URL:</label><input id="p-image" type="url" class="form-control">
+                            </div>
+
+                            <!-- Extra fields for cloth -->
                             <div id="cloth-fields" class="row d-none">
                                 <div class="mb-3 col-6"><label class="form-label">Size:</label><input id="c-size" type="text" class="form-control"></div>
                                 <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="c-color" type="text" class="form-control"></div>
                                 <div class="mb-3 col-6"><label class="form-label">Material:</label><input id="c-material" type="text" class="form-control"></div>
                             </div>
+
+                            <!-- Extra fields for laptop -->
+                            <div id="laptop-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Model:</label><input id="l-model" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Processor:</label><input id="l-processor" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">RAM:</label><input id="l-ram" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Storage:</label><input id="l-storage" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Size:</label><input id="l-display-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Type:</label><input id="l-display-type" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Graphics:</label><input id="l-graphics" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Battery:</label><input id="l-battery" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Weight:</label><input id="l-weight" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="l-color" type="text" class="form-control"></div>
+                            </div>
+
+                            <!-- Extra fields for mobile -->
+                            <div id="mobile-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Model:</label><input id="m-model" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">OS:</label><input id="m-os" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Processor:</label><input id="m-processor" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">RAM:</label><input id="m-ram" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Storage:</label><input id="m-storage" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Size:</label><input id="m-display-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Type:</label><input id="m-display-type" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Camera:</label><input id="m-camera" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Battery:</label><input id="m-battery" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="m-color" type="text" class="form-control"></div>
+                            </div>
+
                             <div class="mb-3"><label class="form-label">Description:</label><textarea id="p-desc" class="form-control" rows="3"></textarea></div>
                             <div id="product-detail-error" class="alert alert-danger d-none py-2 small"></div>
                             <div style="display:flex; gap: 10px;"><button type="submit" class="btn btn-warning">Submit</button><button type="button" class="btn btn-danger" onclick="deleteProduct()">Delete</button><a class="btn btn-secondary" href="/admin-panel/products/">Cancel</a></div>
@@ -53,9 +99,13 @@
             const url = new URL(window.location.href);
             const id = url.searchParams.get('id');
             const type = (url.searchParams.get('type') || 'book').toLowerCase();
+            let finalType = 'book';
+            if (['cloth', 'laptop', 'mobile'].includes(type)) {
+                finalType = type;
+            }
             return {
                 id: id ? Number(id) : null,
-                type: type === 'cloth' ? 'cloth' : 'book',
+                type: finalType,
             };
         }
 
@@ -69,16 +119,24 @@
             const type = currentProductType;
             const subtitleLabel = document.getElementById('p-subtitle-label');
             const imageLabel = document.getElementById('p-image-label');
-            const clothFields = document.getElementById('cloth-fields');
+            
+            document.getElementById('cloth-fields').classList.add('d-none');
+            document.getElementById('laptop-fields').classList.add('d-none');
+            document.getElementById('mobile-fields').classList.add('d-none');
 
+            imageLabel.textContent = (type === 'book') ? 'Cover URL:' : 'Image URL:';
+            
             if (type === 'cloth') {
                 subtitleLabel.textContent = 'Brand:';
-                imageLabel.textContent = 'Image URL:';
-                clothFields.classList.remove('d-none');
+                document.getElementById('cloth-fields').classList.remove('d-none');
+            } else if (type === 'laptop') {
+                subtitleLabel.textContent = 'Brand:';
+                document.getElementById('laptop-fields').classList.remove('d-none');
+            } else if (type === 'mobile') {
+                subtitleLabel.textContent = 'Brand:';
+                document.getElementById('mobile-fields').classList.remove('d-none');
             } else {
                 subtitleLabel.textContent = 'Author:';
-                imageLabel.textContent = 'Cover URL:';
-                clothFields.classList.add('d-none');
             }
         }
 
@@ -87,7 +145,6 @@
             for (const category of categories || []) {
                 const itemName = prefix ? `${prefix} › ${category.name}` : category.name;
                 result.push({ id: category.id, name: itemName });
-
                 const children = Array.isArray(category.subcategories) ? category.subcategories : [];
                 if (children.length) {
                     result.push(...flattenCategories(children, itemName));
@@ -99,22 +156,25 @@
         async function loadCategoryOptions(selectedCategoryId = null) {
             const select = document.getElementById('p-category');
             try {
-                const res = await fetch('/api/categories/');
+                const res = await fetch(`/api/categories/?product_type=${currentProductType}`);
                 const data = await res.json();
-                if (!res.ok || !Array.isArray(data)) {
-                    throw new Error('Không tải được category');
-                }
+                if (!res.ok || !Array.isArray(data)) throw new Error();
 
                 const flat = flattenCategories(data);
                 const options = flat.map(item => `<option value="${item.id}">${item.name}</option>`).join('');
                 select.innerHTML = `<option value="">Chọn category</option>${options}`;
-
                 if (selectedCategoryId !== null && selectedCategoryId !== undefined && selectedCategoryId !== '') {
                     select.value = String(selectedCategoryId);
                 }
             } catch (error) {
                 select.innerHTML = '<option value="">Không tải được category</option>';
             }
+        }
+
+        function getEndpoint(type) {
+            return (type === 'cloth') ? '/api/clothes/' :
+                   (type === 'laptop') ? '/api/laptops/' :
+                   (type === 'mobile') ? '/api/mobiles/' : '/api/books/';
         }
 
         async function loadProduct() {
@@ -129,7 +189,7 @@
             document.getElementById('p-type').value = currentProductType;
             toggleProductTypeFields();
 
-            const endpoint = currentProductType === 'cloth' ? '/api/clothes/' : '/api/books/';
+            const endpoint = getEndpoint(currentProductType);
             const res = await fetch(`${endpoint}${currentProductId}/`);
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -137,52 +197,112 @@
                 return;
             }
 
-            document.getElementById('p-title').value = currentProductType === 'cloth' ? (data.name || '') : (data.title || '');
-            document.getElementById('p-subtitle').value = currentProductType === 'cloth' ? (data.brand || '') : (data.author || '');
             document.getElementById('p-price').value = data.price || 0;
             document.getElementById('p-stock').value = data.stock || 0;
             await loadCategoryOptions(data.category_id ?? '');
-            document.getElementById('p-image').value = currentProductType === 'cloth' ? (data.image_url || '') : (data.cover_url || '');
-            document.getElementById('c-size').value = data.size || '';
-            document.getElementById('c-color').value = data.color || '';
-            document.getElementById('c-material').value = data.material || '';
             document.getElementById('p-desc').value = data.description || '';
+
+            if (currentProductType === 'book') {
+                document.getElementById('p-title').value = data.title || '';
+                document.getElementById('p-subtitle').value = data.author || '';
+                document.getElementById('p-image').value = data.cover_url || '';
+            } else if (currentProductType === 'cloth') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = data.brand || '';
+                document.getElementById('p-image').value = data.image_url || '';
+                document.getElementById('c-size').value = data.size || '';
+                document.getElementById('c-color').value = data.color || '';
+                document.getElementById('c-material').value = data.material || '';
+            } else if (currentProductType === 'laptop') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = data.brand || '';
+                document.getElementById('p-image').value = data.image_url || '';
+                document.getElementById('l-model').value = data.model || '';
+                document.getElementById('l-processor').value = data.processor || '';
+                document.getElementById('l-ram').value = data.ram || '';
+                document.getElementById('l-storage').value = data.storage || '';
+                document.getElementById('l-display-size').value = data.display_size || '';
+                document.getElementById('l-display-type').value = data.display_type || '';
+                document.getElementById('l-graphics').value = data.graphics || '';
+                document.getElementById('l-battery').value = data.battery || '';
+                document.getElementById('l-weight').value = data.weight || '';
+                document.getElementById('l-color').value = data.color || '';
+            } else if (currentProductType === 'mobile') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = data.brand || '';
+                document.getElementById('p-image').value = data.image_url || '';
+                document.getElementById('m-model').value = data.model || '';
+                document.getElementById('m-os').value = data.os || '';
+                document.getElementById('m-processor').value = data.processor || '';
+                document.getElementById('m-ram').value = data.ram || '';
+                document.getElementById('m-storage').value = data.storage || '';
+                document.getElementById('m-display-size').value = data.display_size || '';
+                document.getElementById('m-display-type').value = data.display_type || '';
+                document.getElementById('m-camera').value = data.camera || '';
+                document.getElementById('m-battery').value = data.battery || '';
+                document.getElementById('m-color').value = data.color || '';
+            }
         }
 
         async function updateProduct() {
             if (!currentProductId) return;
             const token = localStorage.getItem('admin_token');
             if (!token) {
-                showDetailError('Bạn cần đăng nhập admin trước khi cập nhật sản phẩm.');
+                showDetailError('Bạn cần đăng nhập admin.');
                 return;
             }
 
             const common = {
-                price: document.getElementById('p-price').value,
+                price: Number(document.getElementById('p-price').value || 0),
                 stock: Number(document.getElementById('p-stock').value || 0),
                 category_id: document.getElementById('p-category').value ? Number(document.getElementById('p-category').value) : null,
                 description: document.getElementById('p-desc').value.trim(),
             };
 
-            const payload = currentProductType === 'cloth'
-                ? {
-                    name: document.getElementById('p-title').value.trim(),
-                    brand: document.getElementById('p-subtitle').value.trim(),
-                    image_url: document.getElementById('p-image').value.trim(),
-                    size: document.getElementById('c-size').value.trim(),
-                    color: document.getElementById('c-color').value.trim(),
-                    material: document.getElementById('c-material').value.trim(),
-                    ...common,
-                }
-                : {
+            let payload;
+            if (currentProductType === 'book') {
+                payload = { ...common,
                     title: document.getElementById('p-title').value.trim(),
                     author: document.getElementById('p-subtitle').value.trim(),
-                    cover_url: document.getElementById('p-image').value.trim(),
-                    ...common,
+                    cover_url: document.getElementById('p-image').value.trim()
+                };
+            } else {
+                payload = { ...common,
+                    name: document.getElementById('p-title').value.trim(),
+                    brand: document.getElementById('p-subtitle').value.trim(),
+                    image_url: document.getElementById('p-image').value.trim()
                 };
 
-            const endpoint = currentProductType === 'cloth' ? '/api/clothes/' : '/api/books/';
+                if (currentProductType === 'cloth') {
+                    payload.size = document.getElementById('c-size').value.trim();
+                    payload.color = document.getElementById('c-color').value.trim();
+                    payload.material = document.getElementById('c-material').value.trim();
+                } else if (currentProductType === 'laptop') {
+                    payload.model = document.getElementById('l-model').value.trim();
+                    payload.processor = document.getElementById('l-processor').value.trim();
+                    payload.ram = document.getElementById('l-ram').value.trim();
+                    payload.storage = document.getElementById('l-storage').value.trim();
+                    payload.display_size = document.getElementById('l-display-size').value.trim();
+                    payload.display_type = document.getElementById('l-display-type').value.trim();
+                    payload.graphics = document.getElementById('l-graphics').value.trim();
+                    payload.battery = document.getElementById('l-battery').value.trim();
+                    payload.weight = document.getElementById('l-weight').value.trim();
+                    payload.color = document.getElementById('l-color').value.trim();
+                } else if (currentProductType === 'mobile') {
+                    payload.model = document.getElementById('m-model').value.trim();
+                    payload.os = document.getElementById('m-os').value.trim();
+                    payload.processor = document.getElementById('m-processor').value.trim();
+                    payload.ram = document.getElementById('m-ram').value.trim();
+                    payload.storage = document.getElementById('m-storage').value.trim();
+                    payload.display_size = document.getElementById('m-display-size').value.trim();
+                    payload.display_type = document.getElementById('m-display-type').value.trim();
+                    payload.camera = document.getElementById('m-camera').value.trim();
+                    payload.battery = document.getElementById('m-battery').value.trim();
+                    payload.color = document.getElementById('m-color').value.trim();
+                }
+            }
 
+            const endpoint = getEndpoint(currentProductType);
             const res = await fetch(`${endpoint}${currentProductId}/`, {
                 method: 'PUT',
                 headers: {
@@ -196,7 +316,6 @@
                 showDetailError(data.error || Object.values(data || {}).flat().join(' | ') || 'Cập nhật thất bại');
                 return;
             }
-
             alert('Cập nhật thành công');
         }
 
@@ -205,22 +324,14 @@
             if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return;
 
             const token = localStorage.getItem('admin_token');
-            if (!token) {
-                showDetailError('Bạn cần đăng nhập admin trước khi xóa sản phẩm.');
-                return;
-            }
+            if (!token) return showDetailError('Bạn cần đăng nhập admin.');
 
-            const endpoint = currentProductType === 'cloth' ? '/api/clothes/' : '/api/books/';
-            const res = await fetch(`${endpoint}${currentProductId}/`, {
+            const res = await fetch(`${getEndpoint(currentProductType)}${currentProductId}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Token ${token}` },
             });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                showDetailError(data.error || 'Xóa thất bại');
-                return;
-            }
-
+            if (!res.ok) return showDetailError(data.error || 'Xóa thất bại');
             window.location.href = '/admin-panel/products/';
         }
 

@@ -145,6 +145,8 @@ services:
       SECRET_KEY: "cart-secret-key-production"
       BOOK_SERVICE_URL: "http://book-service:8005"
       CLOTH_SERVICE_URL: "http://cloth-service:8013"
+      LAPTOP_SERVICE_URL: "http://laptop-service:8014"
+      MOBILE_SERVICE_URL: "http://mobile-service:8015"
       CUSTOMER_SERVICE_URL: "http://customer-service:8003"
     depends_on:
       mysql:
@@ -176,6 +178,8 @@ services:
       CART_SERVICE_URL: "http://cart-service:8006"
       BOOK_SERVICE_URL: "http://book-service:8005"
       CLOTH_SERVICE_URL: "http://cloth-service:8013"
+      LAPTOP_SERVICE_URL: "http://laptop-service:8014"
+      MOBILE_SERVICE_URL: "http://mobile-service:8015"
       PAY_SERVICE_URL: "http://pay-service:8009"
       SHIP_SERVICE_URL: "http://ship-service:8008"
     depends_on:
@@ -191,7 +195,57 @@ services:
         condition: service_started
 
   # ============================================================
-  # ship-service (port 8008)
+  # laptop-service (port 8014)
+  # ============================================================
+  laptop-service:
+    build: ./laptop-service
+    restart: always
+    ports:
+      - "8014:8014"
+    environment:
+      DB_NAME: assign5_laptop
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "laptop-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+      CATALOG_SERVICE_URL: "http://catalog-service:8004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      staff-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+
+  # ============================================================  # mobile-service (port 8015)
+  # ============================================================
+  mobile-service:
+    build: ./mobile-service
+    restart: always
+    ports:
+      - "8015:8015"
+    environment:
+      DB_NAME: assign5_mobile
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "mobile-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+      CATALOG_SERVICE_URL: "http://catalog-service:8004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      staff-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+
+  # ============================================================  # ship-service (port 8008)
   # ============================================================
   ship-service:
     build: ./ship-service
