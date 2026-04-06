@@ -86,25 +86,57 @@
             }));
         }
 
+        function normalizeLaptops(laptops) {
+            return (laptops || []).map((item) => ({
+                type: 'laptop',
+                id: item.id,
+                title: item.name || '',
+                subtitle: [item.brand, item.processor, item.ram].filter(Boolean).join(' | '),
+                price: item.price || 0,
+                stock: item.stock || 0,
+                category_id: item.category_id,
+                category_name: item.category_name || '',
+            }));
+        }
+
+        function normalizeMobiles(mobiles) {
+            return (mobiles || []).map((item) => ({
+                type: 'mobile',
+                id: item.id,
+                title: item.name || '',
+                subtitle: [item.brand, item.os, item.ram].filter(Boolean).join(' | '),
+                price: item.price || 0,
+                stock: item.stock || 0,
+                category_id: item.category_id,
+                category_name: item.category_name || '',
+            }));
+        }
+
         async function loadProducts() {
             const body = document.getElementById('admin-product-list-body');
             body.innerHTML = '<tr><td colspan="8" class="text-center">Đang tải...</td></tr>';
 
             try {
-                const [bookRes, clothRes, categoryMap] = await Promise.all([
+const [bookRes, clothRes, laptopRes, mobileRes, categoryMap] = await Promise.all([    
                     fetch('/api/books/'),
                     fetch('/api/clothes/'),
+                    fetch('/api/laptops/'),
+                    fetch('/api/mobiles/'),
                     loadCategoryMap()
                 ]);
 
-                const [bookData, clothData] = await Promise.all([
+                const [bookData, clothData, laptopData, mobileData] = await Promise.all([
                     bookRes.json().catch(() => ([])),
                     clothRes.json().catch(() => ([])),
+                    laptopRes.json().catch(() => ([])),
+                    mobileRes.json().catch(() => ([])),
                 ]);
 
                 const products = [
                     ...normalizeBooks(bookRes.ok && Array.isArray(bookData) ? bookData : []),
                     ...normalizeClothes(clothRes.ok && Array.isArray(clothData) ? clothData : []),
+                    ...normalizeLaptops(laptopRes.ok && Array.isArray(laptopData) ? laptopData : []),
+                    ...normalizeMobiles(mobileRes.ok && Array.isArray(mobileData) ? mobileData : []),
                 ];
 
                 products.sort((a, b) => {
@@ -119,7 +151,11 @@
 
                 body.innerHTML = products.map((item) => `
                     <tr>
-                        <td><span class="badge ${item.type === 'book' ? 'bg-primary' : 'bg-success'}">${item.type.toUpperCase()}</span></td>
+                        <td><span class="badge ${
+                            item.type === 'book' ? 'bg-primary' : 
+                            (item.type === 'cloth' ? 'bg-success' : 
+                            (item.type === 'laptop' ? 'bg-info text-dark' : 'bg-warning text-dark'))
+                        }">${item.type.toUpperCase()}</span></td>
                         <td>${item.id}</td>
                         <td>${item.title || ''}</td>
                         <td>${item.subtitle || ''}</td>
@@ -145,7 +181,9 @@
                 return;
             }
 
-            const endpoint = type === 'cloth' ? '/api/clothes/' : '/api/books/';
+            const endpoint = (type === 'cloth') ? '/api/clothes/' : 
+                             (type === 'laptop') ? '/api/laptops/' : 
+                             (type === 'mobile') ? '/api/mobiles/' : '/api/books/';
 
             const res = await fetch(`${endpoint}${id}/`, {
                 method: 'DELETE',

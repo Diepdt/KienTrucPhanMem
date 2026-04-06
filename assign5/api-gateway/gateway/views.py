@@ -24,6 +24,8 @@ ROUTE_TABLE = [
     ('reviews/', django_settings.COMMENT_SERVICE_URL),
     ('recommendations/', django_settings.RECOMMENDER_SERVICE_URL),
     ('clothes/', django_settings.CLOTH_SERVICE_URL),
+    ('laptops/', django_settings.LAPTOP_SERVICE_URL),
+    ('mobiles/', django_settings.MOBILE_SERVICE_URL),
     ('agent/',            django_settings.AGENT_SERVICE_URL),
 ]
 

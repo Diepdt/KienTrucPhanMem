@@ -12,6 +12,8 @@ CREATE DATABASE IF NOT EXISTS assign5_comment CHARACTER SET utf8mb4 COLLATE utf8
 CREATE DATABASE IF NOT EXISTS assign5_recommender CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS assign5_agent CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS assign5_cloth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS assign5_laptop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS assign5_mobile CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Cấp quyền cho root từ mọi host
 GRANT ALL PRIVILEGES ON assign5_staff.* TO 'root'@'%';
@@ -27,4 +29,6 @@ GRANT ALL PRIVILEGES ON assign5_comment.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON assign5_recommender.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON assign5_agent.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON assign5_cloth.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON assign5_laptop.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON assign5_mobile.* TO 'root'@'%';
 FLUSH PRIVILEGES;
