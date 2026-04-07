@@ -1,5 +1,5 @@
 # BÁO CÁO KỸ THUẬT
-## ASSIGNMENT 05 — Triển Khai Microservices Hệ Thống BookStore
+## ASSIGNMENT 05 — Triển Khai Microservices Hệ Thống EcomMart
 ### Django REST Framework + Docker Compose
 
 ---
@@ -29,11 +29,11 @@
 
 ### 1.1 Mục tiêu
 
-Bài tập Assignment 05 yêu cầu phân rã hệ thống **BookStore nguyên khối (monolithic)** thành kiến trúc **microservices** sử dụng Django REST Framework. Mỗi service hoạt động độc lập, có database riêng, giao tiếp với nhau qua REST API, và được triển khai thống nhất thông qua Docker Compose.
+Bài tập Assignment 05 yêu cầu phân rã hệ thống **EcomMart nguyên khối (monolithic)** thành kiến trúc **microservices** sử dụng Django REST Framework. Mỗi service hoạt động độc lập, có database riêng, giao tiếp với nhau qua REST API, và được triển khai thống nhất thông qua Docker Compose.
 
 ### 1.2 Phạm vi hệ thống
 
-Hệ thống BookStore bao gồm các chức năng cốt lõi:
+Hệ thống EcomMart bao gồm các chức năng cốt lõi:
 - Quản lý nhân viên và phân quyền (staff, manager)
 - Đăng ký / đăng nhập khách hàng
 - Danh mục và quản lý sách
@@ -699,7 +699,7 @@ Client          Gateway      order-service     customer   cart    pay   ship   b
 
 ### 9.1 Tổng kết
 
-Dự án đã thành công phân rã hệ thống **BookStore từ monolithic sang kiến trúc microservices** với 12 service độc lập, mỗi service đảm nhận một trách nhiệm rõ ràng theo nguyên tắc **Single Responsibility**. Hệ thống đáp ứng đầy đủ 10/10 yêu cầu kỹ thuật và nghiệp vụ của Assignment 05.
+Dự án đã thành công phân rã hệ thống **EcomMart từ monolithic sang kiến trúc microservices** với 12 service độc lập, mỗi service đảm nhận một trách nhiệm rõ ràng theo nguyên tắc **Single Responsibility**. Hệ thống đáp ứng đầy đủ 10/10 yêu cầu kỹ thuật và nghiệp vụ của Assignment 05.
 
 Điểm nổi bật của thiết kế:
 - **Database isolation**: 11 MySQL database hoàn toàn độc lập, không service nào truy cập DB của service khác.

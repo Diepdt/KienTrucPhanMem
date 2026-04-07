@@ -63,7 +63,7 @@ def verify_admin_token(auth_header):
     return False, None
 
 
-def has_customer_purchased_book(customer_id, book_id):
+def has_customer_purchased_product(customer_id, product_type, product_id):
     try:
         resp = http_requests.get(
             f"{django_settings.ORDER_SERVICE_URL}/api/orders/customer/{customer_id}/internal/",
@@ -77,16 +77,16 @@ def has_customer_purchased_book(customer_id, book_id):
             if order.get('status') != 'delivered':
                 continue
             for item in order.get('items', []):
-                if int(item.get('book_id', 0)) == int(book_id):
+                if item.get('product_type', 'book') == product_type and int(item.get('product_id', 0)) == int(product_id):
                     return True
     except Exception as e:
-        logger.error(f"has_customer_purchased_book error: {e}")
+        logger.error(f"has_customer_purchased_product error: {e}")
 
     return False
 
 
 class CreateReviewView(APIView):
-    """Khách hàng đánh giá sách."""
+    """Khách hàng đánh giá sản phẩm."""
 
     def post(self, request):
         auth = request.headers.get('Authorization', '')
@@ -94,20 +94,24 @@ class CreateReviewView(APIView):
         if not valid:
             return Response({'error': 'Unauthorized'}, status=401)
 
-        book_id = request.data.get('book_id')
+        product_type = request.data.get('product_type', 'book')
+        product_id = request.data.get('product_id')
+        if not product_id and request.data.get('book_id'):
+            product_id = request.data.get('book_id')
+
         rating = request.data.get('rating')
         comment = request.data.get('comment', '')
 
-        if not book_id or rating is None:
-            return Response({'error': 'book_id và rating bắt buộc'}, status=400)
+        if not product_id or rating is None:
+            return Response({'error': 'product_id và rating bắt buộc'}, status=400)
 
-        if not has_customer_purchased_book(customer['id'], book_id):
+        if not has_customer_purchased_product(customer['id'], product_type, product_id):
             return Response({'error': 'Bạn chỉ có thể đánh giá sản phẩm trong đơn hàng đã giao.'}, status=403)
 
-        # Kiểm tra nếu đã đánh giá rồi → cập nhật, chưa → tạo mới
         review, created = Review.objects.update_or_create(
             customer_id=customer['id'],
-            book_id=book_id,
+            product_type=product_type,
+            product_id=product_id,
             defaults={'rating': int(rating), 'comment': comment}
         )
         action = 'Đánh giá đã được tạo.' if created else 'Đánh giá đã được cập nhật.'
@@ -131,8 +135,8 @@ class AdminReviewListView(APIView):
 
         distribution = {str(i): reviews.filter(rating=i).count() for i in range(1, 6)}
 
-        top_books_qs = (
-            Review.objects.values('book_id')
+        top_items_qs = (
+            Review.objects.values('product_type', 'product_id')
             .annotate(avg_rating=Avg('rating'), total_reviews=Count('id'))
             .order_by('-avg_rating', '-total_reviews')[:10]
         )
@@ -143,7 +147,7 @@ class AdminReviewListView(APIView):
                 'avg_rating': round(stats['avg_rating'] or 0, 2),
                 'rating_distribution': distribution,
             },
-            'top_books': list(top_books_qs),
+            'top_products': list(top_items_qs),
             'results': ReviewSerializer(reviews, many=True).data,
         })
 
@@ -158,14 +162,15 @@ class AdminReviewDetailView(APIView):
         )
 
 
-class BookReviewListView(APIView):
-    """Danh sách đánh giá của một cuốn sách."""
+class ProductReviewListView(APIView):
+    """Danh sách đánh giá của một sản phẩm."""
 
-    def get(self, request, book_id):
-        reviews = Review.objects.filter(book_id=book_id).order_by('-created_at')
+    def get(self, request, product_type, product_id):
+        reviews = Review.objects.filter(product_type=product_type, product_id=product_id).order_by('-created_at')
         stats = reviews.aggregate(avg_rating=Avg('rating'), total=Count('id'))
         return Response({
-            'book_id': book_id,
+            'product_type': product_type,
+            'product_id': product_id,
             'avg_rating': round(stats['avg_rating'] or 0, 2),
             'total_reviews': stats['total'],
             'reviews': ReviewSerializer(reviews, many=True).data
@@ -184,24 +189,29 @@ class CustomerReviewListView(APIView):
         return Response(ReviewSerializer(reviews, many=True).data)
 
 
-class BookAvgRatingView(APIView):
-    """API nội bộ: lấy điểm trung bình của nhiều cuốn sách."""
+class ProductAvgRatingView(APIView):
+    """API nội bộ: lấy điểm trung bình của nhiều sản phẩm."""
 
     def get(self, request):
-        """GET /api/reviews/avg-ratings/?book_ids=1,2,3"""
-        book_ids_str = request.query_params.get('book_ids', '')
-        if not book_ids_str:
-            return Response({'error': 'book_ids bắt buộc'}, status=400)
+        """GET /api/reviews/avg-ratings/?product_type=book&product_ids=1,2,3"""
+        product_ids_str = request.query_params.get('product_ids', '')
+        if not product_ids_str:
+            product_ids_str = request.query_params.get('book_ids', '')
+
+        if not product_ids_str:
+            return Response({'error': 'product_ids bắt buộc'}, status=400)
+            
+        product_type = request.query_params.get('product_type', 'book')
         try:
-            book_ids = [int(b) for b in book_ids_str.split(',')]
+            ids = [int(b) for b in product_ids_str.split(',')]
         except ValueError:
-            return Response({'error': 'book_ids không hợp lệ'}, status=400)
+            return Response({'error': 'product_ids không hợp lệ'}, status=400)
 
         result = {}
-        for book_id in book_ids:
-            stats = Review.objects.filter(book_id=book_id).aggregate(
+        for p_id in ids:
+            stats = Review.objects.filter(product_type=product_type, product_id=p_id).aggregate(
                 avg=Avg('rating'), count=Count('id'))
-            result[book_id] = {
+            result[p_id] = {
                 'avg_rating': round(stats['avg'] or 0, 2),
                 'count': stats['count']
             }

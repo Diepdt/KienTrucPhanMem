@@ -179,10 +179,16 @@ def update_inventory_stock(items):
     return update_book_stock(items) and update_cloth_stock(items)
 
 
-def clear_cart(customer_id):
+def clear_cart(customer_id, item_ids=None):
     try:
+        payload = {}
+        if item_ids and isinstance(item_ids, list):
+            payload['item_ids'] = item_ids
+            
+        logger.info(f"Clearing cart for customer {customer_id}, payload={payload}")
         http_requests.post(
             f"{django_settings.CART_SERVICE_URL}/api/carts/{customer_id}/clear/",
+            json=payload,
             timeout=5)
     except Exception as e:
         logger.error(f"clear_cart error: {e}")
@@ -242,7 +248,15 @@ class CreateOrderView(APIView):
         cart = get_cart_internal(customer['id'])
         if not cart or not cart.get('items'):
             return Response({'error': 'Giỏ hàng trống, không thể đặt hàng'}, status=400)
-
+        item_ids = request.data.get('item_ids')
+        if item_ids and isinstance(item_ids, list):
+            cart['items'] = [item for item in cart['items'] if item['id'] in item_ids]
+            if not cart['items']:
+                return Response({'error': 'Các sản phẩm đã chọn không có trong giỏ hàng'}, status=400)
+            
+            # Tính lại subtotal từ các item được chọn
+            subtotal = sum(float(item['price']) * int(item['quantity']) for item in cart['items'])
+            cart['total'] = float(subtotal)
         # 2. Lấy thông tin phương thức vận chuyển và thanh toán
         ship_method = get_shipping_method(shipping_method_id)
         pay_method = get_payment_method(payment_method_id)
@@ -306,7 +320,7 @@ class CreateOrderView(APIView):
         update_inventory_stock(cart['items'])
 
         # 9. Xóa giỏ hàng
-        clear_cart(customer['id'])
+        clear_cart(customer['id'], item_ids=request.data.get('item_ids'))
 
         return Response({
             'order': OrderSerializer(order).data,

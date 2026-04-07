@@ -42,6 +42,8 @@ DATABASES = {
 
 BOOK_SERVICE_URL     = os.environ.get('BOOK_SERVICE_URL',     'http://localhost:8005')
 CLOTH_SERVICE_URL    = os.environ.get('CLOTH_SERVICE_URL',    'http://localhost:8013')
+LAPTOP_SERVICE_URL   = os.environ.get('LAPTOP_SERVICE_URL',   'http://localhost:8011')
+MOBILE_SERVICE_URL   = os.environ.get('MOBILE_SERVICE_URL',   'http://localhost:8012')
 CUSTOMER_SERVICE_URL = os.environ.get('CUSTOMER_SERVICE_URL', 'http://localhost:8003')
 
 REST_FRAMEWORK = {

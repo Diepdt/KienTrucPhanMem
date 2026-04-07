@@ -4,7 +4,7 @@ from .models import Review
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = ['id', 'customer_id', 'book_id', 'rating', 'comment', 'created_at']
+        fields = ['id', 'customer_id', 'product_type', 'product_id', 'rating', 'comment', 'created_at']
 
     def validate_rating(self, value):
         if not 1 <= value <= 5:

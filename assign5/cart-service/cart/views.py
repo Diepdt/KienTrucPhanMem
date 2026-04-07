@@ -55,6 +55,34 @@ def get_cloth_info(cloth_id):
     return None
 
 
+def get_laptop_info(laptop_id):
+    """Lấy thông tin laptop từ laptop-service."""
+    try:
+        resp = http_requests.get(
+            f"{django_settings.LAPTOP_SERVICE_URL}/api/laptops/{laptop_id}/",
+            timeout=5
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception as e:
+        logger.error(f"get_laptop_info error: {e}")
+    return None
+
+
+def get_mobile_info(mobile_id):
+    """Lấy thông tin điện thoại từ mobile-service."""
+    try:
+        resp = http_requests.get(
+            f"{django_settings.MOBILE_SERVICE_URL}/api/mobiles/{mobile_id}/",
+            timeout=5
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception as e:
+        logger.error(f"get_mobile_info error: {e}")
+    return None
+
+
 PRODUCT_PROVIDERS = {
     'book': {
         'fetch': get_book_info,
@@ -63,6 +91,14 @@ PRODUCT_PROVIDERS = {
     'cloth': {
         'fetch': get_cloth_info,
         'service': 'cloth-service',
+    },
+    'laptop': {
+        'fetch': get_laptop_info,
+        'service': 'laptop-service',
+    },
+    'mobile': {
+        'fetch': get_mobile_info,
+        'service': 'mobile-service',
     },
 }
 
@@ -120,6 +156,58 @@ def _normalize_product_payload(product_type, payload):
             },
         }
 
+    if product_type == 'laptop':
+        subtitle_parts = [payload.get('brand', ''), payload.get('ram', ''), payload.get('storage', '')]
+        subtitle = ' | '.join([part for part in subtitle_parts if part])
+        return {
+            'product_type': 'laptop',
+            'product_id': payload['id'],
+            'product_name': payload.get('title', payload.get('name', '')),
+            'product_subtitle': subtitle,
+            'product_image_url': payload.get('image_url', ''),
+            'price': payload.get('price', 0),
+            'stock': payload.get('stock', 0),
+            'product_snapshot': {
+                'brand': payload.get('brand', ''),
+                'cpu': payload.get('cpu', ''),
+                'ram': payload.get('ram', ''),
+                'storage': payload.get('storage', ''),
+                'screen': payload.get('screen', ''),
+            },
+            'legacy': {
+                'book_id': None,
+                'book_title': payload.get('title', payload.get('name', '')),
+                'book_author': subtitle,
+                'book_cover_url': payload.get('image_url', ''),
+            },
+        }
+
+    if product_type == 'mobile':
+        subtitle_parts = [payload.get('brand', ''), payload.get('ram', ''), payload.get('storage', '')]
+        subtitle = ' | '.join([part for part in subtitle_parts if part])
+        return {
+            'product_type': 'mobile',
+            'product_id': payload['id'],
+            'product_name': payload.get('title', payload.get('name', '')),
+            'product_subtitle': subtitle,
+            'product_image_url': payload.get('image_url', ''),
+            'price': payload.get('price', 0),
+            'stock': payload.get('stock', 0),
+            'product_snapshot': {
+                'brand': payload.get('brand', ''),
+                'battery': payload.get('battery', ''),
+                'ram': payload.get('ram', ''),
+                'storage': payload.get('storage', ''),
+                'screen': payload.get('screen', ''),
+            },
+            'legacy': {
+                'book_id': None,
+                'book_title': payload.get('title', payload.get('name', '')),
+                'book_author': subtitle,
+                'book_cover_url': payload.get('image_url', ''),
+            },
+        }
+
     return None
 
 
@@ -137,7 +225,7 @@ def resolve_product_for_cart(request_data):
         product_id = request_data.get('cloth_id')
 
     if not product_type:
-        return None, "product_type bắt buộc (book/cloth)", 400
+        return None, "product_type bắt buộc", 400
     if product_type not in PRODUCT_PROVIDERS:
         return None, f"Loại sản phẩm '{product_type}' chưa được hỗ trợ", 400
     if product_id is None:
@@ -299,7 +387,11 @@ class ClearCartView(APIView):
     def post(self, request, customer_id):
         try:
             cart = Cart.objects.get(customer_id=customer_id)
-            cart.items.all().delete()
+            item_ids = request.data.get('item_ids')
+            if item_ids and isinstance(item_ids, list):
+                cart.items.filter(id__in=item_ids).delete()
+            else:
+                cart.items.all().delete()
             return Response({'message': 'Giỏ hàng đã được xóa sạch'})
         except Cart.DoesNotExist:
             return Response({'error': 'Không tìm thấy giỏ hàng'}, status=404)
