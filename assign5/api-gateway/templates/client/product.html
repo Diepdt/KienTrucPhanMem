@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>BookStore - Sản phẩm</title>
+    <title>EcomMart - Sản phẩm</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -64,6 +64,8 @@
                         <option value="all">Tất cả</option>
                         <option value="book">Sách</option>
                         <option value="cloth">Quần áo</option>
+                        <option value="laptop">Laptop</option>
+                        <option value="mobile">Điện thoại</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -90,10 +92,10 @@
             return Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('');
         }
 
-        async function fetchRatingMap(bookIds) {
-            if (!Array.isArray(bookIds) || !bookIds.length) return {};
+        async function fetchRatingMap(productType, productIds) {
+            if (!Array.isArray(productIds) || !productIds.length) return {};
             try {
-                const params = new URLSearchParams({ book_ids: bookIds.join(',') });
+                const params = new URLSearchParams({ product_type: productType, product_ids: productIds.join(',') });
                 const response = await fetch(`/api/reviews/avg-ratings/?${params.toString()}`);
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || typeof data !== 'object') return {};
@@ -127,12 +129,42 @@
                 image_url: cloth.image_url || '',
                 price: cloth.price || 0,
                 stock: Number(cloth.stock || 0),
-                reviewable: false,
-                rating_key: null,
+                reviewable: true,
+                rating_key: String(cloth.id),
             };
         }
 
-        function renderProducts(products, ratingMap = {}) {
+        function normalizeLaptop(laptop) {
+            const subtitleParts = [laptop.brand, laptop.cpu, laptop.ram, laptop.storage].filter(Boolean);
+            return {
+                product_type: 'laptop',
+                product_id: laptop.id,
+                title: laptop.title || laptop.name || 'Laptop',
+                subtitle: subtitleParts.join(' | ') || 'N/A',
+                image_url: laptop.image_url || '',
+                price: laptop.price || 0,
+                stock: Number(laptop.stock || 0),
+                reviewable: true,
+                rating_key: String(laptop.id),
+            };
+        }
+
+        function normalizeMobile(mobile) {
+            const subtitleParts = [mobile.brand, mobile.ram, mobile.storage, mobile.battery].filter(Boolean);
+            return {
+                product_type: 'mobile',
+                product_id: mobile.id,
+                title: mobile.title || mobile.name || 'Điện thoại',
+                subtitle: subtitleParts.join(' | ') || 'N/A',
+                image_url: mobile.image_url || '',
+                price: mobile.price || 0,
+                stock: Number(mobile.stock || 0),
+                reviewable: true,
+                rating_key: String(mobile.id),
+            };
+        }
+
+        function renderProducts(products, ratingMapMap = {}) {
             const list = document.getElementById('product-list');
             if (!products.length) {
                 list.innerHTML = '<div class="col-12"><div class="alert alert-warning">Không có sản phẩm nào.</div></div>';
@@ -140,14 +172,16 @@
             }
 
             list.innerHTML = products.map((product) => {
-                const isBook = product.product_type === 'book';
-                const cover = product.image_url || (isBook
-                    ? 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'
-                    : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop');
-                const rating = isBook ? (ratingMap[product.rating_key] || { avg_rating: 0, count: 0 }) : { avg_rating: 0, count: 0 };
-                const typeBadge = isBook
-                    ? '<span class="badge text-bg-primary">Book</span>'
-                    : '<span class="badge text-bg-success">Cloth</span>';
+                const cover = product.image_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+                
+                const typeMap = ratingMapMap[product.product_type] || {};
+                const rating = typeMap[product.rating_key] || { avg_rating: 0, count: 0 };
+                
+                let typeBadge = '';
+                if (product.product_type === 'book') typeBadge = '<span class="badge text-bg-primary">Book</span>';
+                else if (product.product_type === 'cloth') typeBadge = '<span class="badge text-bg-success">Cloth</span>';
+                else if (product.product_type === 'laptop') typeBadge = '<span class="badge text-bg-info">Laptop</span>';
+                else if (product.product_type === 'mobile') typeBadge = '<span class="badge text-bg-warning">Mobile</span>';
 
                 return `
                     <div class="col-sm-6 col-lg-4 col-xl-3">
@@ -160,12 +194,10 @@
                                 </div>
                                 <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?type=${product.product_type}&id=${product.product_id}">${product.title}</a></h5>
                                 <p class="text-muted mb-2"><small><i class="fa fa-tag me-1"></i>${product.subtitle}</small></p>
-                                ${isBook ? `
-                                    <p class="mb-2 small">
-                                        <span class="text-warning">${renderStars(rating.avg_rating)}</span>
-                                        <span class="text-muted">(${rating.count || 0})</span>
-                                    </p>
-                                ` : '<p class="mb-2 small text-muted">Sản phẩm thời trang</p>'}
+                                <p class="mb-2 small">
+                                    <span class="text-warning">${renderStars(rating.avg_rating)}</span>
+                                    <span class="text-muted">(${rating.count || 0})</span>
+                                </p>
                                 <div class="product-actions d-grid gap-2">
                                     <p class="text-dark fs-6 fw-bold mb-1">${formatPrice(product.price)}</p>
                                     <a href="/customer/product-detail/?type=${product.product_type}&id=${product.product_id}" class="btn btn-outline-secondary">
@@ -187,20 +219,26 @@
             list.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải sản phẩm...</p></div></div>';
 
             try {
-                const [bookRes, clothRes] = await Promise.all([
+                const [bookRes, clothRes, laptopRes, mobileRes] = await Promise.all([
                     fetch('/api/books/'),
                     fetch('/api/clothes/'),
+                    fetch('/api/laptops/'),
+                    fetch('/api/mobiles/'),
                 ]);
 
-                const [bookData, clothData] = await Promise.all([
+                const [bookData, clothData, laptopData, mobileData] = await Promise.all([
                     bookRes.json().catch(() => []),
                     clothRes.json().catch(() => []),
+                    laptopRes.json().catch(() => []),
+                    mobileRes.json().catch(() => []),
                 ]);
 
                 const books = bookRes.ok && Array.isArray(bookData) ? bookData.map(normalizeBook) : [];
                 const clothes = clothRes.ok && Array.isArray(clothData) ? clothData.map(normalizeCloth) : [];
+                const laptops = laptopRes.ok && Array.isArray(laptopData) ? laptopData.map(normalizeLaptop) : [];
+                const mobiles = mobileRes.ok && Array.isArray(mobileData) ? mobileData.map(normalizeMobile) : [];
 
-                let products = [...books, ...clothes];
+                let products = [...books, ...clothes, ...laptops, ...mobiles];
 
                 if (filters.type && filters.type !== 'all') {
                     products = products.filter(product => product.product_type === filters.type);
@@ -216,10 +254,16 @@
 
                 products.sort((a, b) => Number(b.product_id) - Number(a.product_id));
 
-                const ratingMap = await fetchRatingMap(
-                    products.filter(product => product.product_type === 'book').map(product => product.product_id)
-                );
-                renderProducts(products, ratingMap);
+                const ratingMapMap = {};
+                for (const type of ['book', 'cloth', 'laptop', 'mobile']) {
+                    const typeIds = products
+                        .filter(product => product.product_type === type && product.reviewable)
+                        .map(p => p.product_id);
+                    if (typeIds.length > 0) {
+                        ratingMapMap[type] = await fetchRatingMap(type, typeIds);
+                    }
+                }
+                renderProducts(products, ratingMapMap);
             } catch (error) {
                 list.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
             }

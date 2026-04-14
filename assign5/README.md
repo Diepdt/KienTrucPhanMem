@@ -1,6 +1,6 @@
-# BookStore Microservices
+# EcomMart Microservices
 
-Hệ thống BookStore phân rã thành Microservices sử dụng Django REST Framework, Docker Compose, và MySQL độc lập cho từng service.
+Hệ thống EcomMart phân rã thành Microservices sử dụng Django REST Framework, Docker Compose, và MySQL độc lập cho từng service.
 
 ---
 

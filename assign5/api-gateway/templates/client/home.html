@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>BookStore - Trang chủ</title>
+    <title>EcomMart - Trang chủ</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -43,12 +43,12 @@
         <section class="hero p-4 p-md-5 mb-4">
             <div class="row align-items-center g-4">
                 <div class="col-lg-7">
-                    <h1 class="display-6 fw-bold mb-3">Sách hay mỗi ngày, giá tốt mỗi giờ</h1>
-                    <p class="mb-4">Khám phá bộ sưu tập sách mới, mua nhanh, theo dõi đơn hàng và quản lý giỏ hàng ngay trên BookStore.</p>
+                    <h1 class="display-6 fw-bold mb-3">Sản phẩm chất lượng, giá tốt mỗi giờ</h1>
+                    <p class="mb-4">Khám phá bộ sưu tập sách mới, mua nhanh, theo dõi đơn hàng và quản lý giỏ hàng ngay trên EcomMart.</p>
                     <a href="/customer/product/" class="btn btn-light text-primary fw-semibold px-4">Xem tất cả sản phẩm</a>
                 </div>
                 <div class="col-lg-5">
-                    <img class="img-fluid rounded-3 shadow-sm" src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1200&auto=format&fit=crop" alt="BookStore banner">
+                    <img class="img-fluid rounded-3 shadow-sm" src="https://tse3.mm.bing.net/th/id/OIP.iWnOecykeZMPXxPYZZcEwgHaE8?w=1470&h=980&rs=1&pid=ImgDetMain&o=7&rm=3" alt="EcomMart banner">
                 </div>
             </div>
         </section>
@@ -59,7 +59,7 @@
             </div>
 
             <!-- Static products to ensure buttons show -->
-            <div class="row g-4 mb-4">
+            <!-- <div class="row g-4 mb-4">
                 <div class="col-md-6 col-lg-4 col-xl-3">
                     <div class="product-card h-100">
                         <img src="https://tse3.mm.bing.net/th/id/OIP.YQTMezYwN_ke_0T-smqKBQHaMH?rs=1&pid=ImgDetMain&o=7&rm=3" class="product-image" alt="An lạc từng bước chân">
@@ -136,7 +136,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <div class="row g-4" id="book-list" style="display: none;"></div>
         </section>
@@ -243,10 +243,20 @@
                 const details = await Promise.all(
                     topRecs.map(async (rec) => {
                         try {
-                            const response = await fetch(`/api/books/${rec.book_id}/`);
-                            const book = await response.json();
+                            // Support multi-service from recommender AI
+                            let servicePath = 'books';
+                            const serviceType = rec.service_type || 'book';
+                            if (serviceType === 'laptop') servicePath = 'laptops';
+                            else if (serviceType === 'mobile') servicePath = 'mobiles';
+                            else if (serviceType === 'cloth') servicePath = 'clothes';
+
+                            const product_id = rec.product_id || rec.book_id;
+                            if (!product_id) return null;
+
+                            const response = await fetch(`/api/${servicePath}/${product_id}/`);
+                            const product = await response.json();
                             if (!response.ok) return null;
-                            return { rec, book };
+                            return { rec, product };
                         } catch {
                             return null;
                         }
@@ -255,19 +265,19 @@
 
                 const valid = details.filter(Boolean);
                 if (!valid.length) {
-                    list.innerHTML = '<div class="col-12"><div class="alert alert-warning mb-0">Không tải được chi tiết sách gợi ý.</div></div>';
+                    list.innerHTML = '<div class="col-12"><div class="alert alert-warning mb-0">Không tải được chi tiết sản phẩm gợi ý.</div></div>';
                     return;
                 }
 
-                list.innerHTML = valid.map(({ rec, book }) => `
+                list.innerHTML = valid.map(({ rec, product }) => `
                     <div class="col-md-6 col-lg-3">
                         <div class="product-card h-100">
-                            <img src="${book.cover_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'}" class="product-image" alt="${escapeHtml(book.title)}">
+                            <img src="${product.cover_url || product.image_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'}" class="product-image" alt="${escapeHtml(product.title || product.name)}">
                             <div class="p-3 d-flex flex-column h-100">
-                                <h6 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=${book.id}">${escapeHtml(book.title)}</a></h6>
-                                <p class="text-muted small mb-2">${escapeHtml(rec.reason || 'Phù hợp với bạn')}</p>
-                                <p class="fw-bold text-primary mb-2">${formatPrice(book.price)}</p>
-                                <a href="/customer/product-detail/?id=${book.id}" class="btn btn-outline-primary btn-sm mt-auto">Xem chi tiết</a>
+                                <h6 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?id=${product.id}">${escapeHtml(product.title || product.name)}</a></h6>
+                                <p class="text-muted small mb-2">${escapeHtml(rec.reason || 'Khai phá sở thích theo AI')}</p>
+                                <p class="fw-bold text-primary mb-2">${formatPrice(product.price)}</p>
+                                <a href="/customer/product-detail/?id=${product.id}" class="btn btn-outline-primary btn-sm mt-auto">Xem chi tiết</a>
                             </div>
                         </div>
                     </div>

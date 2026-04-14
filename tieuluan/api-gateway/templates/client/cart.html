@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EcomMart - Giỏ hàng</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .cart-item {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1rem;
+            transition: box-shadow .15s ease;
+        }
+        .cart-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,.05);
+        }
+        .cart-image {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .cart-summary {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: sticky;
+            top: 100px;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+        }
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            max-width: 120px;
+        }
+        .quantity-control button {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+        }
+        .quantity-control input {
+            width: 56px;
+            text-align: center;
+            border-left: none;
+            border-right: none;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <nav class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/customer/">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Giỏ hàng</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0"><i class="fa fa-shopping-cart me-3"></i>Giỏ hàng của bạn</h1>
+            <div>
+                <a href="/customer/" class="btn btn-outline-primary">
+                    <i class="fa fa-home me-2"></i>Về trang chủ
+                </a>
+                <a href="/customer/product/" class="btn btn-outline-secondary ms-2">
+                    <i class="fa fa-plus me-2"></i>Mua thêm
+                </a>
+            </div>
+        </div>
+
+        <div id="cart-container">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Đang tải giỏ hàng...</p>
+            </div>
+        </div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let cartData = null;
+        let customerInfo = null;
+        let selectedItems = new Set();
+
+        function formatPrice(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        function getDefaultBookImage() {
+            return 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+        }
+
+        function getDefaultClothImage() {
+            return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
+        }
+
+        function getItemType(item) {
+            return (item.product_type || 'book').toLowerCase();
+        }
+
+        function getItemTitle(item) {
+            return item.product_name || 'Sản phẩm';
+        }
+
+        function getItemSubtitle(item) {
+            return item.product_subtitle || 'N/A';
+        }
+
+        function getItemImage(item) {
+            const type = getItemType(item);
+            const url = item.product_image_url || '';
+            if (url) return url;
+            return type === 'cloth' ? getDefaultClothImage() : getDefaultBookImage();
+        }
+
+        function getItemProductId(item) {
+            return item.product_id;
+        }
+
+        function renderEmptyCart() {
+            return `
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="text-center py-5 cart-item">
+                            <i class="fa fa-shopping-cart fa-5x text-muted mb-4"></i>
+                            <h4>Giỏ hàng trống</h4>
+                            <p class="text-muted mb-4">Bạn chưa có sản phẩm nào trong giỏ hàng</p>
+                            <a href="/customer/product/" class="btn btn-primary">
+                                <i class="fa fa-shopping-bag me-2"></i>Khám phá sản phẩm
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleSelectItem(itemId) {
+            if (selectedItems.has(itemId)) {
+                selectedItems.delete(itemId);
+            } else {
+                selectedItems.add(itemId);
+            }
+            updateSummary();
+        }
+
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('select-all-checkbox');
+            if (!cartData?.items) return;
+
+            if (checkbox.checked) {
+                cartData.items.forEach(item => selectedItems.add(item.id));
+            } else {
+                selectedItems.clear();
+            }
+
+            document.querySelectorAll('.item-checkbox').forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+            updateSummary();
+        }
+
+        function updateSummary() {
+            if (!cartData?.items) return;
+
+            let selectedCount = 0;
+            let selectedTotal = 0;
+
+            cartData.items.forEach(item => {
+                if (selectedItems.has(item.id)) {
+                    selectedCount += item.quantity;
+                    selectedTotal += parseFloat(item.item_total || 0);
+                }
+            });
+
+            document.getElementById('selected-count').textContent = selectedCount;
+            document.getElementById('selected-total').textContent = formatPrice(selectedTotal);
+
+            const checkoutBtn = document.getElementById('checkout-btn');
+            if (selectedCount === 0) {
+                checkoutBtn.disabled = true;
+                checkoutBtn.textContent = '<i class="fa fa-credit-card me-2"></i>Chọn sản phẩm để thanh toán';
+            } else {
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerHTML = `<i class="fa fa-credit-card me-2"></i>Thanh toán (${selectedCount} sản phẩm)`;
+            }
+        }
+
+        function goCheckout() {
+            if (selectedItems.size === 0) {
+                alert('Vui lòng chọn ít nhất 1 sản phẩm');
+                return;
+            }
+            const selectedIds = Array.from(selectedItems).join(',');
+            window.location.href = `/customer/checkout/?items=${selectedIds}`;
+        }
+
+        function renderCartItems(cart) {
+            if (!cart.items || cart.items.length === 0) {
+                return renderEmptyCart();
+            }
+
+            const itemsHtml = cart.items.map(item => `
+                <div class="cart-item mb-3" data-item-id="${item.id}">
+                    <div class="row align-items-center g-3">
+                        <div class="col-auto">
+                            <input type="checkbox" class="item-checkbox form-check-input" style="width: 20px; height: 20px; cursor: pointer;" 
+                                   onchange="toggleSelectItem(${item.id})" ${selectedItems.has(item.id) ? 'checked' : ''}>
+                        </div>
+                        <div class="col-auto">
+                            <img src="${getItemImage(item)}"
+                                 class="cart-image" alt="${getItemTitle(item)}">
+                        </div>
+                        <div class="col">
+                            <h6 class="mb-1">
+                                <a href="/customer/product-detail/?type=${getItemType(item)}&id=${getItemProductId(item)}" class="text-decoration-none">${getItemTitle(item)}</a>
+                            </h6>
+                            <p class="text-muted small mb-2"><i class="fa fa-tag me-1"></i>${getItemSubtitle(item)}</p>
+                            <p class="mb-0"><strong>${formatPrice(item.price)}</strong></p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="quantity-control">
+                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">
+                                    <i class="fa fa-minus"></i>
+                                </button>
+                                <input type="number" class="form-control" value="${item.quantity}" min="1" max="99"
+                                       onchange="updateQuantity(${item.id}, this.value)">
+                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="text-end">
+                                <p class="mb-1"><strong>${formatPrice(item.item_total)}</strong></p>
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeFromCart(${item.id})">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+
+            const summaryHtml = `
+                <div class="cart-summary">
+                    <h5><i class="fa fa-calculator me-2"></i>Tóm tắt đơn hàng</h5>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2" style="border-bottom: 1px solid #e9ecef; padding-bottom: 0.5rem;">
+                        <label class="form-check-label fw-bold" style="cursor: pointer;">
+                            <input type="checkbox" id="select-all-checkbox" class="form-check-input" onchange="toggleSelectAll()" style="width: 18px; height: 18px; cursor: pointer;">
+                            Chọn tất cả
+                        </label>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tổng sản phẩm:</span>
+                        <span>${totalItems} sản phẩm</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" style="border-bottom: 1px solid #e9ecef; padding-bottom: 0.5rem;">
+                        <span class="text-secondary">Sản phẩm chọn:</span>
+                        <span id="selected-count" class="text-primary fw-bold">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tổng tiền tất cả:</span>
+                        <strong class="text-primary">${formatPrice(cart.total)}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3" style="border-top: 2px solid #e9ecef; padding-top: 0.75rem;">
+                        <span class="fw-bold">Tiền thanh toán:</span>
+                        <strong class="text-success fs-5" id="selected-total">${formatPrice(0)}</strong>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-lg" id="checkout-btn" onclick="goCheckout()" disabled>
+                            <i class="fa fa-credit-card me-2"></i>Chọn sản phẩm để thanh toán
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearCart()">
+                            <i class="fa fa-trash me-2"></i>Xóa toàn bộ
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="row">
+                    <div class="col-lg-8">
+                        ${itemsHtml}
+                    </div>
+                    <div class="col-lg-4">
+                        ${summaryHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadCart() {
+            const container = document.getElementById('cart-container');
+            const token = localStorage.getItem('customer_token');
+
+            if (!token) {
+                container.innerHTML = `
+                    <div class="row justify-content-center">
+                        <div class="col-md-6">
+                            <div class="alert alert-warning text-center">
+                                <i class="fa fa-exclamation-triangle fa-2x mb-3"></i>
+                                <h5>Chưa đăng nhập</h5>
+                                <p>Bạn cần đăng nhập để xem giỏ hàng</p>
+                                <a href="/user/login/" class="btn btn-primary">Đăng nhập ngay</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                customerInfo = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                if (!customerInfo.id) {
+                    throw new Error('Thông tin customer không hợp lệ');
+                }
+
+                const res = await fetch(`/api/carts/${customerInfo.id}/`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+
+                if (!res.ok) {
+                    throw new Error('Không thể tải giỏ hàng');
+                }
+
+                cartData = await res.json();
+                container.innerHTML = renderCartItems(cartData);
+
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fa fa-exclamation-circle me-2"></i>
+                        Lỗi: ${error.message}
+                        <div class="mt-2">
+                            <button class="btn btn-outline-danger btn-sm" onclick="loadCart()">Thử lại</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function updateQuantity(itemId, newQuantity) {
+            if (newQuantity < 1 || newQuantity > 99) return;
+
+            const token = localStorage.getItem('customer_token');
+            if (!token) return;
+
+            try {
+                const res = await fetch(`/api/carts/items/${itemId}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                    },
+                    body: JSON.stringify({
+                        quantity: parseInt(newQuantity)
+                    }),
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    alert('Lỗi: ' + (error.error || 'Không thể cập nhật số lượng'));
+                    return;
+                }
+
+                // Reload cart to show updated totals
+                await loadCart();
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        async function removeFromCart(itemId) {
+            if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
+
+            const token = localStorage.getItem('customer_token');
+            if (!token) return;
+
+            try {
+                const res = await fetch(`/api/carts/items/${itemId}/remove/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                    },
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    alert('Lỗi: ' + (error.error || 'Không thể xóa sản phẩm'));
+                    return;
+                }
+
+                // Reload cart
+                await loadCart();
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        async function clearCart() {
+            if (!confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
+
+            const token = localStorage.getItem('customer_token');
+            if (!token) return;
+
+            try {
+                if (!customerInfo || !customerInfo.id) return;
+
+                const res = await fetch(`/api/carts/${customerInfo.id}/clear/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    alert('Lỗi: ' + (error.error || 'Không thể xóa giỏ hàng'));
+                    return;
+                }
+
+                // Reload cart
+                await loadCart();
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        function proceedToCheckout() {
+            if (!cartData || !cartData.items || cartData.items.length === 0) {
+                alert('Giỏ hàng trống, không thể thanh toán');
+                return;
+            }
+
+            window.location.href = '/customer/checkout/';
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            loadCart();
+        });
+    </script>
+</body>
+</html>

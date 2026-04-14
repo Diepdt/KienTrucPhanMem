@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EcomMart - Chi tiết đơn hàng</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .section-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        .book-thumb {
+            width: 56px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #f1f5f9;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <nav class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/customer/">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/customer/orders/">Lịch sử đơn hàng</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Chi tiết đơn hàng</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <h1 class="h3 mb-0"><i class="fa fa-file-invoice me-2"></i>Chi tiết đơn hàng</h1>
+            <a href="/customer/orders/" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-2"></i>Quay lại lịch sử
+            </a>
+        </div>
+
+        <div id="order-detail-container">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Đang tải chi tiết đơn hàng...</p>
+            </div>
+        </div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentOrderStatus = '';
+
+        function formatPrice(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        function formatDate(value) {
+            if (!value) return 'N/A';
+            return new Date(value).toLocaleString('vi-VN');
+        }
+
+        function getStatusText(status) {
+            const map = {
+                pending: 'Chờ xác nhận',
+                confirmed: 'Đã xác nhận',
+                shipping: 'Đang vận chuyển',
+                delivered: 'Đã giao hàng',
+                cancelled: 'Đã hủy'
+            };
+            return map[status] || 'Không xác định';
+        }
+
+        function getDefaultBookImage() {
+            return 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+        }
+
+        function getDefaultClothImage() {
+            return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
+        }
+
+        function getItemType(item) {
+            return (item.product_type || 'book').toLowerCase();
+        }
+
+        function getItemTitle(item) {
+            return item.product_name || 'Sản phẩm';
+        }
+
+        function getItemSubtitle(item) {
+            return item.product_subtitle || 'N/A';
+        }
+
+        function getItemCover(orderItem, coverMap) {
+            if (orderItem?.product_image_url) {
+                return orderItem.product_image_url;
+            }
+
+            return getItemType(orderItem) === 'cloth' ? getDefaultClothImage() : getDefaultBookImage();
+        }
+
+        function renderOrderDetail(order, coverMap = {}, myReviewMap = {}) {
+            const canReview = order.status === 'delivered';
+            const itemsHtml = (Array.isArray(order.items) ? order.items : []).map(item => {
+                const itemType = getItemType(item);
+                const canReviewItem = canReview && item.product_id;
+                const existing = myReviewMap[`${itemType}_${item.product_id}`] || null;
+                const ratingValue = existing?.rating || 5;
+                const commentValue = existing?.comment || '';
+
+                return `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="${getItemCover(item, coverMap)}" class="book-thumb" alt="product">
+                            <div>
+                                <div class="fw-semibold">${getItemTitle(item)}</div>
+                                <div class="text-muted small">${itemType.toUpperCase()} | ${getItemSubtitle(item)}</div>
+                                ${canReviewItem ? `
+                                    <div class="mt-2 d-flex flex-column gap-2" style="max-width: 420px;">
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <select id="review-rating-${itemType}-${item.product_id}" class="form-select form-select-sm" style="max-width: 130px;">
+                                                <option value="5" ${Number(ratingValue) === 5 ? 'selected' : ''}>5 sao</option>
+                                                <option value="4" ${Number(ratingValue) === 4 ? 'selected' : ''}>4 sao</option>
+                                                <option value="3" ${Number(ratingValue) === 3 ? 'selected' : ''}>3 sao</option>
+                                                <option value="2" ${Number(ratingValue) === 2 ? 'selected' : ''}>2 sao</option>
+                                                <option value="1" ${Number(ratingValue) === 1 ? 'selected' : ''}>1 sao</option>
+                                            </select>
+                                            <button class="btn btn-sm btn-primary" onclick="submitItemReview('${itemType}', ${item.product_id})">${existing ? 'Cập nhật' : 'Đánh giá'}</button>
+                                        </div>
+                                        <input id="review-comment-${itemType}-${item.product_id}" class="form-control form-control-sm" placeholder="Nhận xét sản phẩm..." value="${String(commentValue || '').replaceAll('"', '&quot;')}">
+                                    </div>
+                                ` : '<div class="text-muted small mt-2">Đánh giá chỉ áp dụng cho sản phẩm sách đã giao hàng.</div>'}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-end">${formatPrice(item.price)}</td>
+                    <td class="text-center">${item.quantity || 0}</td>
+                    <td class="text-end">${formatPrice(item.item_total)}</td>
+                </tr>
+            `;
+            }).join('');
+
+            return `
+                <div class="section-card mb-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h5 class="mb-1">Đơn hàng #${order.id}</h5>
+                            <div class="text-muted small">Tạo lúc: ${formatDate(order.created_at)}</div>
+                        </div>
+                        <span class="badge bg-primary">${getStatusText(order.status)}</span>
+                    </div>
+                </div>
+
+                <div class="section-card mb-3">
+                    <h6 class="mb-3">Thông tin giao nhận</h6>
+                    <div class="row g-2 small">
+                        <div class="col-md-6"><strong>Vận chuyển:</strong> ${order.shipping_method_name || 'N/A'}</div>
+                        <div class="col-md-6"><strong>Thanh toán:</strong> ${order.payment_method_name || 'N/A'}</div>
+                        <div class="col-md-6"><strong>Phí vận chuyển:</strong> ${formatPrice(order.shipping_cost)}</div>
+                        <div class="col-md-6"><strong>Tạm tính:</strong> ${formatPrice(order.subtotal)}</div>
+                        <div class="col-12"><strong>Địa chỉ:</strong> ${order.shipping_address || 'N/A'}</div>
+                        <div class="col-12"><strong>Ghi chú:</strong> ${order.notes || 'Không có'}</div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h6 class="mb-3">Danh sách sản phẩm</h6>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-end">Đơn giá</th>
+                                    <th class="text-center">SL</th>
+                                    <th class="text-end">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-end">Tổng thanh toán</th>
+                                    <th class="text-end text-primary fs-5">${formatPrice(order.total_amount)}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadMyReviewMap(token) {
+            try {
+                const res = await fetch('/api/reviews/mine/', {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await res.json().catch(() => ([]));
+                if (!res.ok || !Array.isArray(data)) return {};
+                return data.reduce((acc, review) => {
+                    acc[`${review.product_type}_${review.product_id}`] = review;
+                    return acc;
+                }, {});
+            } catch {
+                return {};
+            }
+        }
+
+        async function submitItemReview(productType, productId) {
+            if (currentOrderStatus !== 'delivered') {
+                alert('Bạn chỉ có thể đánh giá khi đơn hàng đã giao hàng.');
+                return;
+            }
+
+            const token = localStorage.getItem('customer_token');
+            if (!token) {
+                alert('Bạn cần đăng nhập để đánh giá.');
+                return;
+            }
+
+            const ratingEl = document.getElementById(`review-rating-${productType}-${productId}`);
+            const commentEl = document.getElementById(`review-comment-${productType}-${productId}`);
+            const rating = Number(ratingEl?.value || 5);
+            const comment = (commentEl?.value || '').trim();
+
+            try {
+                const res = await fetch('/api/reviews/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                    },
+                    body: JSON.stringify({ product_type: productType, product_id: productId, rating, comment })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    alert(data.error || 'Đánh giá thất bại.');
+                    return;
+                }
+                alert('Đánh giá thành công.');
+                await loadOrderDetail();
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        async function loadOrderDetail() {
+            const container = document.getElementById('order-detail-container');
+            const token = localStorage.getItem('customer_token');
+
+            if (!token) {
+                container.innerHTML = `
+                    <div class="alert alert-warning text-center">
+                        <h5>Chưa đăng nhập</h5>
+                        <p>Bạn cần đăng nhập để xem chi tiết đơn hàng.</p>
+                        <a href="/user/login/" class="btn btn-primary">Đăng nhập ngay</a>
+                    </div>
+                `;
+                return;
+            }
+
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            const orderId = pathParts[pathParts.length - 1];
+
+            if (!orderId || !/^\d+$/.test(orderId)) {
+                container.innerHTML = `
+                    <div class="alert alert-danger">Mã đơn hàng không hợp lệ.</div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/orders/${orderId}/`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data?.error || 'Không thể tải chi tiết đơn hàng');
+                }
+
+                currentOrderStatus = data?.status || '';
+
+                const [coverMap, myReviewMap] = await Promise.all([
+                    Promise.resolve({}),
+                    loadMyReviewMap(token)
+                ]);
+                container.innerHTML = renderOrderDetail(data, coverMap, myReviewMap);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fa fa-exclamation-circle me-2"></i>
+                        Lỗi: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            loadOrderDetail();
+        });
+    </script>
+</body>
+</html>

@@ -310,6 +310,8 @@ services:
   # recommender-ai-service (port 8011)
   # ============================================================
   recommender-ai-service:
+    profiles:
+      - skip
     build: ./recommender-ai-service
     restart: always
     ports:
@@ -418,7 +420,6 @@ services:
       - ship-service
       - pay-service
       - comment-rate-service
-      - recommender-ai-service
       - agent-service
       - cloth-service
 

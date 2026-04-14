@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>BookStore - Chi tiết sản phẩm</title>
+    <title>EcomMart - Chi tiết sản phẩm</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -157,6 +157,38 @@
                     description: payload.description || '',
                 };
             }
+            if (type === 'laptop') {
+                const subtitleParts = [payload.brand, payload.cpu, payload.ram, payload.storage].filter(Boolean);
+                return {
+                    product_type: 'laptop',
+                    product_id: payload.id,
+                    title: payload.title || payload.name || 'Laptop',
+                    subtitle_label: 'Cấu hình',
+                    subtitle: subtitleParts.join(' | ') || 'N/A',
+                    image_url: payload.image_url || '',
+                    price: payload.price || 0,
+                    stock: payload.stock || 0,
+                    category_id: payload.category_id,
+                    category_name: payload.category_name || '',
+                    description: payload.description || '',
+                };
+            }
+            if (type === 'mobile') {
+                const subtitleParts = [payload.brand, payload.ram, payload.storage, payload.battery].filter(Boolean);
+                return {
+                    product_type: 'mobile',
+                    product_id: payload.id,
+                    title: payload.title || payload.name || 'Mobile',
+                    subtitle_label: 'Cấu hình',
+                    subtitle: subtitleParts.join(' | ') || 'N/A',
+                    image_url: payload.image_url || '',
+                    price: payload.price || 0,
+                    stock: payload.stock || 0,
+                    category_id: payload.category_id,
+                    category_name: payload.category_name || '',
+                    description: payload.description || '',
+                };
+            }
 
             const subtitleParts = [payload.brand, payload.size, payload.color].filter(Boolean);
             return {
@@ -197,7 +229,7 @@
             try {
                 const query = getProductFromQuery();
                 const productId = query.id;
-                const productType = query.type === 'cloth' ? 'cloth' : 'book';
+                const productType = query.type || 'book';
 
                 if (!productId) {
                     container.innerHTML = '<div class="col-12"><div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>Không có thông tin sản phẩm để hiển thị. <a href="/customer/product/" class="alert-link">Quay lại danh sách sản phẩm</a></div></div>';
@@ -207,7 +239,12 @@
                 // Show loading state
                 container.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải chi tiết sản phẩm...</p></div></div>';
 
-                const endpoint = productType === 'book' ? `/api/books/${productId}/` : `/api/clothes/${productId}/`;
+                let endpoint = '';
+                if (productType === 'book') endpoint = `/api/books/${productId}/`;
+                else if (productType === 'cloth') endpoint = `/api/clothes/${productId}/`;
+                else if (productType === 'laptop') endpoint = `/api/laptops/${productId}/`;
+                else if (productType === 'mobile') endpoint = `/api/mobiles/${productId}/`;
+                
                 const res = await fetch(endpoint);
                 const rawProduct = await res.json();
 
@@ -218,12 +255,14 @@
 
                 const product = normalizeProduct(productType, rawProduct);
                 const categoryName = await resolveCategoryName(product);
-                const defaultImage = productType === 'book'
-                    ? 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop'
-                    : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
-                const typeBadge = productType === 'book'
-                    ? '<span class="badge text-bg-primary">Book</span>'
-                    : '<span class="badge text-bg-success">Cloth</span>';
+                let defaultImage = 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+                if (productType === 'cloth') defaultImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
+
+                let typeBadge = '';
+                if (productType === 'book') typeBadge = '<span class="badge text-bg-primary">Book</span>';
+                else if (productType === 'cloth') typeBadge = '<span class="badge text-bg-success">Cloth</span>';
+                else if (productType === 'laptop') typeBadge = '<span class="badge text-bg-info">Laptop</span>';
+                else if (productType === 'mobile') typeBadge = '<span class="badge text-bg-warning">Mobile</span>';
 
                 // Restore the original HTML structure and populate with data
                 container.innerHTML = `
@@ -276,14 +315,11 @@
 
                 currentProductId = product.product_id;
                 currentProductType = product.product_type;
-                document.title = `BookStore - ${product.title}`;
+                document.title = `EcomMart - ${product.title}`;
 
-                if (currentProductType === 'book') {
-                    reviewSection.style.display = 'block';
-                    await loadReviews();
-                } else {
-                    reviewSection.style.display = 'none';
-                }
+                // Show review section for all product types now
+                reviewSection.style.display = 'block';
+                await loadReviews();
 
             } catch (error) {
                 container.innerHTML = `<div class="col-12"><div class="alert alert-danger"><i class="fa fa-exclamation-triangle me-2"></i>Lỗi tải sản phẩm: ${error.message}</div></div>`;
@@ -291,13 +327,13 @@
         }
 
         async function loadReviews() {
-            if (currentProductType !== 'book' || !currentProductId) return;
+            if (!currentProductId) return;
 
             const listEl = document.getElementById('review-list');
             const avgEl = document.getElementById('review-avg-rating');
             const totalEl = document.getElementById('review-total');
             try {
-                const res = await fetch(`/api/reviews/books/${currentProductId}/`);
+                const res = await fetch(`/api/reviews/product/${currentProductType}/${currentProductId}/`);
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Manage Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body class="sb-nav-fixed">
+    {% include 'admin/layout/header.html' %}
+    <div id="layoutSidenav">
+        {% include 'admin/layout/sidenav.html' %}
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Manage Orders</h1>
+                    <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item active">Orders</li></ol>
+
+                    <div class="card mb-3">
+                        <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+                            <div>
+                                <label class="form-label mb-1">Sắp xếp theo</label>
+                                <select id="order-sort-by" class="form-select">
+                                    <option value="created_at">Thời gian tạo</option>
+                                    <option value="total_amount">Tổng tiền</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label mb-1">Thứ tự</label>
+                                <select id="order-sort-dir" class="form-select">
+                                    <option value="desc">Giảm dần</option>
+                                    <option value="asc">Tăng dần</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button class="btn btn-primary" onclick="loadOrders()">
+                                    <i class="fas fa-sync me-1"></i>Áp dụng
+                                </button>
+                            </div>
+                            <div id="order-summary" class="ms-auto text-muted small"></div>
+                        </div>
+                    </div>
+
+                    <div id="order-info" class="alert alert-info d-none"></div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Khách hàng</th>
+                                    <th>Thời gian</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-order-list-body">
+                                <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+            {% include 'admin/layout/footer.html' %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết đơn hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="order-detail-modal-body">
+                    Đang tải...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (typeof ensureAdminAuth === 'function') {
+            ensureAdminAuth();
+        }
+
+        const statusOptions = [
+            { value: 'pending', label: 'Chờ xác nhận' },
+            { value: 'confirmed', label: 'Đã xác nhận' },
+            { value: 'shipping', label: 'Đang vận chuyển' },
+            { value: 'delivered', label: 'Giao hàng thành công' },
+        ];
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        function formatDate(value) {
+            if (!value) return 'N/A';
+            return new Date(value).toLocaleString('vi-VN');
+        }
+
+        function statusLabel(status) {
+            const map = {
+                pending: 'Chờ xác nhận',
+                confirmed: 'Đã xác nhận',
+                shipping: 'Đang vận chuyển',
+                delivered: 'Giao hàng thành công',
+                cancelled: 'Đã hủy'
+            };
+            return map[status] || status;
+        }
+
+        function showOrderInfo(message, type = 'info') {
+            const box = document.getElementById('order-info');
+            box.className = `alert alert-${type}`;
+            box.textContent = message;
+            box.classList.remove('d-none');
+        }
+
+        async function loadOrders() {
+            const token = localStorage.getItem('admin_token');
+            const body = document.getElementById('admin-order-list-body');
+            const summary = document.getElementById('order-summary');
+
+            if (!token) {
+                showOrderInfo('Bạn cần đăng nhập admin (manager/staff) để xem đơn hàng.', 'warning');
+                return;
+            }
+
+            const sortBy = document.getElementById('order-sort-by').value;
+            const sortDir = document.getElementById('order-sort-dir').value;
+            body.innerHTML = '<tr><td colspan="6" class="text-center">Đang tải...</td></tr>';
+
+            try {
+                const res = await fetch(`/api/orders/admin/?sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(sortDir)}`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (res.status === 401) {
+                    showOrderInfo('Bạn cần đăng nhập admin (manager/staff) để xem danh sách đơn hàng.', 'warning');
+                    return;
+                }
+
+                if (!res.ok) {
+                    showOrderInfo(data.error || 'Không thể tải đơn hàng.', 'danger');
+                    return;
+                }
+
+                const orders = Array.isArray(data.results) ? data.results : [];
+                summary.textContent = `Tổng đơn: ${orders.length}`;
+
+                if (!orders.length) {
+                    body.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Không có đơn hàng</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = orders.map((order) => {
+                    const statusSelect = statusOptions.map((option) => (
+                        `<option value="${option.value}" ${option.value === order.status ? 'selected' : ''}>${option.label}</option>`
+                    )).join('');
+
+                    return `
+                        <tr>
+                            <td>#${order.id}</td>
+                            <td>${order.customer_id}</td>
+                            <td>${formatDate(order.created_at)}</td>
+                            <td>${formatCurrency(order.total_amount)}</td>
+                            <td>${statusLabel(order.status)}</td>
+                            <td>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button class="btn btn-info btn-sm" onclick="viewOrderDetail(${order.id})">Chi tiết</button>
+                                    <select class="form-select form-select-sm" id="status-select-${order.id}" style="min-width: 180px;">
+                                        ${statusSelect}
+                                    </select>
+                                    <button class="btn btn-primary btn-sm" onclick="updateOrderStatus(${order.id})">Cập nhật</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('order-info').classList.add('d-none');
+            } catch {
+                showOrderInfo('Không kết nối được order-service.', 'danger');
+            }
+        }
+
+        async function viewOrderDetail(orderId) {
+            const token = localStorage.getItem('admin_token');
+            if (!token) return;
+
+            const modalBody = document.getElementById('order-detail-modal-body');
+            modalBody.innerHTML = 'Đang tải...';
+
+            const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+            modal.show();
+
+            try {
+                const res = await fetch(`/api/orders/admin/${orderId}/`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    modalBody.innerHTML = `<div class="alert alert-danger">${data.error || 'Không tải được chi tiết đơn hàng'}</div>`;
+                    return;
+                }
+
+                const items = Array.isArray(data.items) ? data.items : [];
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <div><strong>Mã đơn:</strong> #${data.id}</div>
+                        <div><strong>Khách hàng:</strong> ${data.customer_id}</div>
+                        <div><strong>Thời gian:</strong> ${formatDate(data.created_at)}</div>
+                        <div><strong>Trạng thái:</strong> ${statusLabel(data.status)}</div>
+                        <div><strong>Địa chỉ giao:</strong> ${data.shipping_address || 'N/A'}</div>
+                        <div><strong>Ghi chú:</strong> ${data.notes || 'Không có'}</div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-end">Đơn giá</th>
+                                    <th class="text-center">SL</th>
+                                    <th class="text-end">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.map((item) => `
+                                    <tr>
+                                        <td>${item.product_name || 'N/A'}</td>
+                                        <td class="text-end">${formatCurrency(item.price)}</td>
+                                        <td class="text-center">${item.quantity || 0}</td>
+                                        <td class="text-end">${formatCurrency(item.item_total)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-end">Tổng tiền</th>
+                                    <th class="text-end">${formatCurrency(data.total_amount)}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+            } catch {
+                modalBody.innerHTML = '<div class="alert alert-danger">Không kết nối được order-service.</div>';
+            }
+        }
+
+        async function updateOrderStatus(orderId) {
+            const token = localStorage.getItem('admin_token');
+            const statusSelect = document.getElementById(`status-select-${orderId}`);
+            const status = statusSelect ? statusSelect.value : '';
+            if (!token || !status) return;
+
+            try {
+                const res = await fetch(`/api/orders/admin/${orderId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    showOrderInfo(data.error || 'Cập nhật trạng thái thất bại', 'danger');
+                    return;
+                }
+
+                showOrderInfo(`Đã cập nhật trạng thái đơn #${orderId} thành công.`, 'success');
+                await loadOrders();
+            } catch {
+                showOrderInfo('Không kết nối được order-service.', 'danger');
+            }
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>

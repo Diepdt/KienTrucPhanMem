@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Manage Products</title>
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body class="sb-nav-fixed">
+    {% include 'admin/layout/header.html' %}
+    <div id="layoutSidenav">
+        {% include 'admin/layout/sidenav.html' %}
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Manage Products</h1>
+                    <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item active">Products</li></ol>
+                    <div style="display:flex; justify-content: space-between; align-self: center;">
+                        <h5>List Product:</h5>
+                        <div><a class="btn btn-warning" href="/admin-panel/products/create/">Create a new product</a></div>
+                    </div>
+                    <hr>
+                    <table class="table table-hover table-striped table-boreded">
+                        <thead><tr><th>Type</th><th>ID</th><th>Title</th><th>Subtitle</th><th>Price</th><th>Stock</th><th>Category</th><th>Action</th></tr></thead>
+                        <tbody id="admin-product-list-body"></tbody>
+                    </table>
+                </div>
+            </main>
+            {% include 'admin/layout/footer.html' %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function flattenCategories(categories, prefix = '') {
+            const result = [];
+            for (const category of categories || []) {
+                const itemName = prefix ? `${prefix} › ${category.name}` : category.name;
+                result.push({ id: category.id, name: itemName });
+                const children = Array.isArray(category.subcategories) ? category.subcategories : [];
+                if (children.length) {
+                    result.push(...flattenCategories(children, itemName));
+                }
+            }
+            return result;
+        }
+
+        async function loadCategoryMap() {
+            try {
+                const res = await fetch('/api/categories/');
+                const data = await res.json().catch(() => ([]));
+                if (!res.ok || !Array.isArray(data)) return {};
+                const flat = flattenCategories(data);
+                return flat.reduce((acc, item) => {
+                    acc[String(item.id)] = item.name;
+                    return acc;
+                }, {});
+            } catch {
+                return {};
+            }
+        }
+
+        function normalizeProducts(products) {
+            return (products || []).map((item) => ({
+                type: item.product_type || 'general',
+                id: item.id,
+                title: item.name || '',
+                subtitle: [item.attributes?.brand, item.attributes?.author, item.attributes?.model].filter(Boolean).join(' | '),
+                price: item.price || 0,
+                stock: item.stock || 0,
+                category_id: item.category_id,
+                category_name: item.category_name || '',
+            }));
+        }
+
+        async function loadProducts() {
+            const body = document.getElementById('admin-product-list-body');
+            body.innerHTML = '<tr><td colspan="8" class="text-center">Đang tải...</td></tr>';
+
+            try {
+const [productRes, categoryMap] = await Promise.all([
+                    fetch('/api/products/'),
+                    loadCategoryMap()
+                ]);
+
+                const productData = await productRes.json().catch(() => ([]));
+                const products = normalizeProducts(productRes.ok && Array.isArray(productData) ? productData : []);
+
+                products.sort((a, b) => {
+                    if (a.type === b.type) return b.id - a.id;
+                    return a.type.localeCompare(b.type);
+                });
+
+                if (!products.length) {
+                    body.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Chưa có sản phẩm</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = products.map((item) => `
+                    <tr>
+                        <td><span class="badge ${
+                            item.type === 'book' ? 'bg-primary' : 
+                            (item.type === 'cloth' ? 'bg-success' : 
+                            (item.type === 'laptop' ? 'bg-info text-dark' : 'bg-warning text-dark'))
+                        }">${item.type.toUpperCase()}</span></td>
+                        <td>${item.id}</td>
+                        <td>${item.title || ''}</td>
+                        <td>${item.subtitle || ''}</td>
+                        <td>${item.price || 0}</td>
+                        <td>${item.stock || 0}</td>
+                        <td>${item.category_name || categoryMap[String(item.category_id)] || ''}</td>
+                        <td>
+                            <a class="btn btn-info btn-sm" href="/admin-panel/products/detail/?type=${item.type}&id=${item.id}">View</a>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct('${item.type}', ${item.id})">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                body.innerHTML = `<tr><td colspan="8" class="text-center text-danger">${error.message}</td></tr>`;
+            }
+        }
+
+        async function deleteProduct(type, id) {
+            if (!confirm(`Xóa sản phẩm #${id} (${type})?`)) return;
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                alert('Bạn cần đăng nhập admin');
+                return;
+            }
+
+            const res = await fetch(`/api/products/${id}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Token ${token}` }
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(data.error || 'Xóa sản phẩm thất bại (cần staff token).');
+                return;
+            }
+
+            loadProducts();
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>

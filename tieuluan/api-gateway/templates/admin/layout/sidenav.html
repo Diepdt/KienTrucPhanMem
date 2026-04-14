@@ -1,0 +1,49 @@
+<div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+        <div class="sb-sidenav-menu">
+            <div class="nav">
+                <div class="sb-sidenav-menu-heading">Features</div>
+                <a class="nav-link" href="/admin-panel/">
+                    <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                    Dashboard
+                </a>
+                <a class="nav-link" href="/admin-panel/users/" id="nav-admin-users">
+                    <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
+                    User
+                </a>
+                <a class="nav-link" href="/admin-panel/products/">
+                    <div class="sb-nav-link-icon"><i class="fas fa-box-open"></i></div>
+                    Product
+                </a>
+                <a class="nav-link" href="/admin-panel/categories/">
+                    <div class="sb-nav-link-icon"><i class="fas fa-tags"></i></div>
+                    Category
+                </a>
+                <a class="nav-link" href="/admin-panel/orders/" id="nav-admin-orders">
+                    <div class="sb-nav-link-icon"><i class="fas fa-receipt"></i></div>
+                    Order
+                </a>
+                <a class="nav-link" href="/admin-panel/reviews/" id="nav-admin-reviews">
+                    <div class="sb-nav-link-icon"><i class="fas fa-star"></i></div>
+                    Review
+                </a>
+            </div>
+        </div>
+        <div class="sb-sidenav-footer">
+            <div class="small">Logged in as:</div>
+            Admin
+        </div>
+    </nav>
+</div>
+
+<script>
+    (function applyRoleMenuVisibility() {
+        const role = localStorage.getItem('admin_type') || '';
+        if (role === 'staff') {
+            const usersLink = document.getElementById('nav-admin-users');
+            const reviewsLink = document.getElementById('nav-admin-reviews');
+            if (usersLink) usersLink.classList.add('d-none');
+            if (reviewsLink) reviewsLink.classList.add('d-none');
+        }
+    })();
+</script>
