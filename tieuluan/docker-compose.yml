@@ -255,6 +255,7 @@ services:
       COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
       ORDER_SERVICE_URL: "http://order-service:8007"
       CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      PRODUCT_SERVICE_URL: "http://product-service:8004"
     depends_on:
       mysql:
         condition: service_healthy

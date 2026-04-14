@@ -19,10 +19,7 @@ KB_DIR.mkdir(exist_ok=True)
 
 # Service URLs
 SERVICE_URLS = {
-    'book': os.getenv('BOOK_SERVICE_URL', 'http://book-service:8000'),
-    'laptop': os.getenv('LAPTOP_SERVICE_URL', 'http://laptop-service:8000'),
-    'mobile': os.getenv('MOBILE_SERVICE_URL', 'http://mobile-service:8000'),
-    'cloth': os.getenv('CLOTH_SERVICE_URL', 'http://cloth-service:8000'),
+    'product': os.getenv('PRODUCT_SERVICE_URL', 'http://product-service:8004'),
     'order': os.getenv('ORDER_SERVICE_URL', 'http://order-service:8000'),
     'ship': os.getenv('SHIP_SERVICE_URL', 'http://ship-service:8000'),
     'pay': os.getenv('PAY_SERVICE_URL', 'http://pay-service:8000'),
@@ -52,14 +49,14 @@ class KnowledgeBaseBuilder:
         
         try:
             endpoints = {
-                'book': '/api/books/',
-                'laptop': '/api/laptops/',
-                'mobile': '/api/mobiles/',
-                'cloth': '/api/clothes/'
+                'book': '/api/products/?product_type=book',
+                'laptop': '/api/products/?product_type=laptop',
+                'mobile': '/api/products/?product_type=mobile',
+                'cloth': '/api/products/?product_type=cloth'
             }
             
             endpoint = endpoints.get(service_name, '/api/')
-            response = requests.get(f'{service_url}{endpoint}', timeout=TIMEOUT)
+            response = requests.get(f'{SERVICE_URLS["product"]}{endpoint}', timeout=TIMEOUT)
             response.raise_for_status()
             
             data = response.json()
@@ -98,7 +95,7 @@ class KnowledgeBaseBuilder:
     
     def add_product_documents(self, service_name: str):
         """Thêm documents cho các sản phẩm từ một service"""
-        print(f"Fetching products from {service_name}-service...")
+        print(f"Fetching products from product-service ({service_name})...")
         products = self.fetch_products_from_service(service_name)
         
         for product in products:

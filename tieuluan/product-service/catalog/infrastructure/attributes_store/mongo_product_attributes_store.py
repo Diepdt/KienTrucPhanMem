@@ -92,3 +92,19 @@ class MongoProductAttributesStore:
             return
         except PyMongoError as exc:
             logger.warning('Mongo delete attributes failed for product_id=%s: %s', product_id, exc)
+
+    def delete_many(self, product_ids):
+        normalized_ids = []
+        for raw_id in product_ids:
+            try:
+                normalized_ids.append(int(raw_id))
+            except (TypeError, ValueError):
+                continue
+
+        if not normalized_ids:
+            return
+
+        try:
+            self._get_collection().delete_many({'product_id': {'$in': normalized_ids}})
+        except PyMongoError as exc:
+            logger.warning('Mongo delete_many attributes failed: %s', exc)

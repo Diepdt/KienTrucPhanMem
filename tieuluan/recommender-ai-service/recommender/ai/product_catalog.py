@@ -8,11 +8,13 @@ from .constants import DEFAULT_SERVICE_TYPES, PRODUCT_ENDPOINT_CANDIDATES
 
 TIMEOUT = 8
 
+PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8004")
+
 SERVICE_URLS = {
-    "book": os.getenv("BOOK_SERVICE_URL", "http://book-service:8000"),
-    "laptop": os.getenv("LAPTOP_SERVICE_URL", "http://laptop-service:8000"),
-    "mobile": os.getenv("MOBILE_SERVICE_URL", "http://mobile-service:8000"),
-    "cloth": os.getenv("CLOTH_SERVICE_URL", "http://cloth-service:8000"),
+    "book": PRODUCT_SERVICE_URL,
+    "laptop": PRODUCT_SERVICE_URL,
+    "mobile": PRODUCT_SERVICE_URL,
+    "cloth": PRODUCT_SERVICE_URL,
 }
 
 

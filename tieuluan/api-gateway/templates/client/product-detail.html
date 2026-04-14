@@ -205,11 +205,8 @@
                 let defaultImage = 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
                 if (product.product_type === 'cloth') defaultImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
 
-                let typeBadge = '';
-                if (product.product_type === 'book') typeBadge = '<span class="badge text-bg-primary">Book</span>';
-                else if (product.product_type === 'cloth') typeBadge = '<span class="badge text-bg-success">Cloth</span>';
-                else if (product.product_type === 'laptop') typeBadge = '<span class="badge text-bg-info">Laptop</span>';
-                else if (product.product_type === 'mobile') typeBadge = '<span class="badge text-bg-warning">Mobile</span>';
+                const typeLabel = String(product.product_type || 'general').replaceAll('_', ' ');
+                const typeBadge = `<span class="badge text-bg-secondary text-uppercase">${typeLabel}</span>`;
 
                 // Restore the original HTML structure and populate with data
                 container.innerHTML = `

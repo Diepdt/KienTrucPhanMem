@@ -13,10 +13,7 @@ from datetime import datetime, timedelta
 CUSTOMER_SERVICE_URL = os.getenv('CUSTOMER_SERVICE_URL', 'http://customer-service:8000')
 ORDER_SERVICE_URL = os.getenv('ORDER_SERVICE_URL', 'http://order-service:8000')
 CART_SERVICE_URL = os.getenv('CART_SERVICE_URL', 'http://cart-service:8000')
-BOOK_SERVICE_URL = os.getenv('BOOK_SERVICE_URL', 'http://book-service:8000')
-LAPTOP_SERVICE_URL = os.getenv('LAPTOP_SERVICE_URL', 'http://laptop-service:8000')
-MOBILE_SERVICE_URL = os.getenv('MOBILE_SERVICE_URL', 'http://mobile-service:8000')
-CLOTH_SERVICE_URL = os.getenv('CLOTH_SERVICE_URL', 'http://cloth-service:8000')
+PRODUCT_SERVICE_URL = os.getenv('PRODUCT_SERVICE_URL', 'http://product-service:8004')
 
 # Timeout cho requests
 TIMEOUT = 10
@@ -78,19 +75,19 @@ class DataPipeline:
             print(f"Error fetching carts: {e}")
             return []
     
-    def fetch_products_from_service(self, service_url: str, service_name: str) -> List[Dict]:
-        """Lấy danh sách sản phẩm từ một service cụ thể"""
+    def fetch_products_from_service(self, service_name: str) -> List[Dict]:
+        """Lấy danh sách sản phẩm từ product-service theo product_type."""
         try:
             endpoints = {
-                'book': '/api/books/',
-                'laptop': '/api/laptops/',
-                'mobile': '/api/mobiles/',
-                'cloth': '/api/clothes/'
+                'book': '/api/products/?product_type=book',
+                'laptop': '/api/products/?product_type=laptop',
+                'mobile': '/api/products/?product_type=mobile',
+                'cloth': '/api/products/?product_type=cloth'
             }
             endpoint = endpoints.get(service_name, '/api/')
             
             response = requests.get(
-                f'{service_url}{endpoint}',
+                f'{PRODUCT_SERVICE_URL}{endpoint}',
                 timeout=TIMEOUT
             )
             response.raise_for_status()
@@ -191,15 +188,10 @@ class DataPipeline:
         
         print("[2/5] Fetching products from all services...")
         products_by_service = {}
-        for service_name, service_url in [
-            ('book', BOOK_SERVICE_URL),
-            ('laptop', LAPTOP_SERVICE_URL),
-            ('mobile', MOBILE_SERVICE_URL),
-            ('cloth', CLOTH_SERVICE_URL)
-        ]:
-            products = self.fetch_products_from_service(service_url, service_name)
+        for service_name in ['book', 'laptop', 'mobile', 'cloth']:
+            products = self.fetch_products_from_service(service_name)
             products_by_service[service_name] = products
-            print(f"  ✓ Got {len(products)} products from {service_name}-service")
+            print(f"  ✓ Got {len(products)} products from product-service ({service_name})")
         
         print("[3/5] Building ID mappings...")
         self.build_id_mappings(customers, products_by_service)

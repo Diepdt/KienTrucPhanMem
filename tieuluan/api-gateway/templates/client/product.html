@@ -36,6 +36,14 @@
             margin-top: 0.75rem;
             padding-top: 0.75rem;
         }
+        .type-tag {
+            border-radius: 999px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .type-tag.active {
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
     </style>
 </head>
 <body>
@@ -62,10 +70,6 @@
                 <div class="col-md-2">
                     <select class="form-select" id="product-type-filter" onchange="searchProducts()">
                         <option value="all">Tất cả</option>
-                        <option value="book">Sách</option>
-                        <option value="cloth">Quần áo</option>
-                        <option value="laptop">Laptop</option>
-                        <option value="mobile">Điện thoại</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -73,16 +77,49 @@
                         <i class="fa fa-refresh me-2"></i>Làm mới
                     </button>
                 </div>
+                <div class="col-12">
+                    <div id="product-type-tags" class="d-flex flex-wrap"></div>
+                </div>
             </div>
         </div>
 
         <div class="row g-4" id="product-list"></div>
+
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between mt-4" id="pagination-wrapper">
+            <div class="text-muted mb-2 mb-md-0" id="product-summary"></div>
+            <nav aria-label="Product pagination">
+                <ul class="pagination mb-0" id="product-pagination"></ul>
+            </nav>
+        </div>
     </main>
 
     {% include 'client/layout/footer.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const PAGE_SIZE = 8;
+        const state = {
+            allProducts: [],
+            filteredProducts: [],
+            currentPage: 1,
+        };
+
+        const typeLabels = {
+            all: 'Tất cả',
+            book: 'Sách',
+            cloth: 'Quần áo',
+            laptop: 'Laptop',
+            mobile: 'Điện thoại',
+            tablet: 'Tablet',
+            smartwatch: 'Smartwatch',
+            headphone: 'Headphone',
+            camera: 'Camera',
+            keyboard: 'Keyboard',
+            mouse: 'Mouse',
+            monitor: 'Monitor',
+            speaker: 'Speaker',
+        };
+
         function formatPrice(value) {
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
         }
@@ -90,6 +127,10 @@
         function renderStars(avg) {
             const rounded = Math.round(Number(avg || 0));
             return Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('');
+        }
+
+        function typeLabel(type) {
+            return typeLabels[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Khác');
         }
 
         async function fetchRatingMap(productType, productIds) {
@@ -106,22 +147,51 @@
         }
 
         function normalizeProduct(item) {
-            const attrs = item.attributes || {};
+            const attrs = item.attributes || item.detail_data || {};
             const subtitleParts = [attrs.brand, attrs.author, attrs.model, attrs.ram].filter(Boolean);
+            const productType = String(item.product_type || '').toLowerCase();
             return {
-                product_type: item.product_type,
+                product_type: productType,
                 product_id: item.id,
                 title: item.name || 'Sản phẩm',
                 subtitle: subtitleParts.join(' | ') || 'N/A',
-                image_url: item.image_url || '',
-                price: item.price || 0,
-                stock: Number(item.stock || 0),
+                image_url: item.image_url || item.image || '',
+                price: item.price || item.sale_price || item.regular_price || 0,
+                stock: Number(item.stock || item.quantity || 0),
                 reviewable: true,
                 rating_key: String(item.id),
             };
         }
 
-        function renderProducts(products, ratingMapMap = {}) {
+        function renderTypeTags() {
+            const typeContainer = document.getElementById('product-type-tags');
+            const typeFilter = document.getElementById('product-type-filter');
+            const availableTypes = [...new Set(state.allProducts.map(p => p.product_type).filter(Boolean))].sort();
+            const selectedType = availableTypes.includes(typeFilter.value) || typeFilter.value === 'all'
+                ? typeFilter.value
+                : 'all';
+            const allTypes = ['all', ...availableTypes];
+
+            typeContainer.innerHTML = allTypes.map((type) => {
+                const activeClass = selectedType === type ? 'btn-primary text-white active' : 'btn-outline-primary';
+                return `<button type="button" class="btn btn-sm type-tag ${activeClass}" onclick="selectTypeTag('${type}')">${typeLabel(type)}</button>`;
+            }).join('');
+        }
+
+        function populateTypeFilterOptions() {
+            const typeFilter = document.getElementById('product-type-filter');
+            const currentValue = typeFilter.value || 'all';
+            const availableTypes = [...new Set(state.allProducts.map(p => p.product_type).filter(Boolean))].sort();
+            const allTypes = ['all', ...availableTypes];
+
+            typeFilter.innerHTML = allTypes
+                .map((type) => `<option value="${type}">${typeLabel(type)}</option>`)
+                .join('');
+
+            typeFilter.value = allTypes.includes(currentValue) ? currentValue : 'all';
+        }
+
+        async function renderProducts(products, ratingMapMap = {}) {
             const list = document.getElementById('product-list');
             if (!products.length) {
                 list.innerHTML = '<div class="col-12"><div class="alert alert-warning">Không có sản phẩm nào.</div></div>';
@@ -130,15 +200,16 @@
 
             list.innerHTML = products.map((product) => {
                 const cover = product.image_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
-                
+
                 const typeMap = ratingMapMap[product.product_type] || {};
                 const rating = typeMap[product.rating_key] || { avg_rating: 0, count: 0 };
-                
+
                 let typeBadge = '';
                 if (product.product_type === 'book') typeBadge = '<span class="badge text-bg-primary">Book</span>';
                 else if (product.product_type === 'cloth') typeBadge = '<span class="badge text-bg-success">Cloth</span>';
                 else if (product.product_type === 'laptop') typeBadge = '<span class="badge text-bg-info">Laptop</span>';
                 else if (product.product_type === 'mobile') typeBadge = '<span class="badge text-bg-warning">Mobile</span>';
+                else typeBadge = `<span class="badge text-bg-secondary">${typeLabel(product.product_type)}</span>`;
 
                 return `
                     <div class="col-sm-6 col-lg-4 col-xl-3">
@@ -171,7 +242,108 @@
             }).join('');
         }
 
-        async function loadProducts(filters = {}) {
+        function applyFilters() {
+            const query = document.getElementById('search-query').value.trim().toLowerCase();
+            const type = document.getElementById('product-type-filter').value;
+            let products = [...state.allProducts];
+
+            if (type && type !== 'all') {
+                products = products.filter((product) => product.product_type === type);
+            }
+
+            if (query) {
+                products = products.filter((product) =>
+                    product.title.toLowerCase().includes(query) ||
+                    String(product.subtitle || '').toLowerCase().includes(query)
+                );
+            }
+
+            products.sort((a, b) => Number(b.product_id) - Number(a.product_id));
+            state.filteredProducts = products;
+        }
+
+        async function renderPage() {
+            const list = document.getElementById('product-list');
+            const totalItems = state.filteredProducts.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+            if (state.currentPage > totalPages) state.currentPage = totalPages;
+
+            const start = (state.currentPage - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            const pageProducts = state.filteredProducts.slice(start, end);
+
+            const ratingMapMap = {};
+            const typeGroups = {};
+            pageProducts.forEach((product) => {
+                if (!typeGroups[product.product_type]) typeGroups[product.product_type] = [];
+                typeGroups[product.product_type].push(product.product_id);
+            });
+
+            for (const [type, ids] of Object.entries(typeGroups)) {
+                if (ids.length > 0) {
+                    ratingMapMap[type] = await fetchRatingMap(type, ids);
+                }
+            }
+
+            await renderProducts(pageProducts, ratingMapMap);
+            renderPagination(totalItems, totalPages);
+        }
+
+        function renderPagination(totalItems, totalPages) {
+            const summary = document.getElementById('product-summary');
+            const pagination = document.getElementById('product-pagination');
+
+            if (totalItems === 0) {
+                summary.textContent = 'Không có sản phẩm phù hợp';
+                pagination.innerHTML = '';
+                return;
+            }
+
+            const from = (state.currentPage - 1) * PAGE_SIZE + 1;
+            const to = Math.min(state.currentPage * PAGE_SIZE, totalItems);
+            summary.textContent = `Hiển thị ${from}-${to} / ${totalItems} sản phẩm`;
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            const items = [];
+            items.push(`<li class="page-item ${state.currentPage === 1 ? 'disabled' : ''}"><button class="page-link" onclick="goToPage(${state.currentPage - 1})">Trước</button></li>`);
+            for (let i = 1; i <= totalPages; i++) {
+                items.push(`<li class="page-item ${state.currentPage === i ? 'active' : ''}"><button class="page-link" onclick="goToPage(${i})">${i}</button></li>`);
+            }
+            items.push(`<li class="page-item ${state.currentPage === totalPages ? 'disabled' : ''}"><button class="page-link" onclick="goToPage(${state.currentPage + 1})">Sau</button></li>`);
+            pagination.innerHTML = items.join('');
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.max(1, Math.ceil(state.filteredProducts.length / PAGE_SIZE));
+            if (page < 1 || page > totalPages) return;
+            state.currentPage = page;
+            renderPage();
+        }
+
+        function selectTypeTag(type) {
+            const filter = document.getElementById('product-type-filter');
+            filter.value = type;
+            searchProducts();
+        }
+
+        function searchProducts() {
+            state.currentPage = 1;
+            applyFilters();
+            renderTypeTags();
+            renderPage();
+        }
+
+        function resetSearch() {
+            document.getElementById('search-query').value = '';
+            document.getElementById('product-type-filter').value = 'all';
+            searchProducts();
+        }
+
+        async function loadProducts() {
             const list = document.getElementById('product-list');
             list.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải sản phẩm...</p></div></div>';
 
@@ -182,52 +354,16 @@
                     throw new Error('Không thể tải danh sách sản phẩm.');
                 }
 
-                let products = data.map(normalizeProduct);
-
-                if (filters.type && filters.type !== 'all') {
-                    products = products.filter(product => product.product_type === filters.type);
-                }
-
-                if (filters.search) {
-                    const q = filters.search.toLowerCase();
-                    products = products.filter((product) =>
-                        product.title.toLowerCase().includes(q) ||
-                        String(product.subtitle || '').toLowerCase().includes(q)
-                    );
-                }
-
-                products.sort((a, b) => Number(b.product_id) - Number(a.product_id));
-
-                const ratingMapMap = {};
-                for (const type of ['book', 'cloth', 'laptop', 'mobile']) {
-                    const typeIds = products
-                        .filter(product => product.product_type === type && product.reviewable)
-                        .map(p => p.product_id);
-                    if (typeIds.length > 0) {
-                        ratingMapMap[type] = await fetchRatingMap(type, typeIds);
-                    }
-                }
-                renderProducts(products, ratingMapMap);
+                state.allProducts = data.map(normalizeProduct);
+                populateTypeFilterOptions();
+                applyFilters();
+                renderTypeTags();
+                await renderPage();
             } catch (error) {
                 list.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
+                document.getElementById('product-summary').textContent = '';
+                document.getElementById('product-pagination').innerHTML = '';
             }
-        }
-
-        function searchProducts() {
-            const query = document.getElementById('search-query').value.trim();
-            const type = document.getElementById('product-type-filter').value;
-            const filters = {};
-            if (query) {
-                filters.search = query;
-            }
-            filters.type = type;
-            loadProducts(filters);
-        }
-
-        function resetSearch() {
-            document.getElementById('search-query').value = '';
-            document.getElementById('product-type-filter').value = 'all';
-            loadProducts();
         }
 
         async function addToCart(productType, productId) {
@@ -255,7 +391,6 @@
                     return;
                 }
 
-                // Show success notification
                 const notification = document.createElement('div');
                 notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
                 notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
@@ -265,14 +400,12 @@
                 `;
                 document.body.appendChild(notification);
 
-                // Auto remove notification after 3 seconds
                 setTimeout(() => {
                     if (notification.parentNode) {
                         notification.parentNode.removeChild(notification);
                     }
                 }, 3000);
 
-                // Update header cart count
                 if (typeof clientUpdateHeaderState === 'function') {
                     clientUpdateHeaderState();
                 }
@@ -281,7 +414,6 @@
             }
         }
 
-        // Search on Enter key
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('search-query');
             if (searchInput) {

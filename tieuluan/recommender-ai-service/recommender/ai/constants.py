@@ -10,8 +10,8 @@ EVENT_WEIGHTS = {
 DEFAULT_SERVICE_TYPES = ["book", "laptop", "mobile", "cloth"]
 
 PRODUCT_ENDPOINT_CANDIDATES = {
-    "book": ["/api/books/", "/api/book/"],
-    "laptop": ["/api/laptops/", "/api/laptop/"],
-    "mobile": ["/api/mobiles/", "/api/mobile/"],
-    "cloth": ["/api/clothes/", "/api/cloth/"],
+    "book": ["/api/products/?product_type=book"],
+    "laptop": ["/api/products/?product_type=laptop"],
+    "mobile": ["/api/products/?product_type=mobile"],
+    "cloth": ["/api/products/?product_type=cloth"],
 }
