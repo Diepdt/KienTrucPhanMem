@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EcomMart - Sản phẩm</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .product-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: transform .15s ease, box-shadow .15s ease;
+            overflow: hidden;
+            background: #fff;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        }
+        .product-image {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+        }
+        .filter-section {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        .product-actions {
+            border-top: 1px solid #eef2f7;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0">Tất cả sản phẩm</h1>
+            <a href="/customer/" class="btn btn-outline-secondary">
+                <i class="fa fa-home me-2"></i>Về trang chủ
+            </a>
+        </div>
+
+        <div class="filter-section">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="search-query" placeholder="Tìm kiếm theo tên sản phẩm, tác giả, thương hiệu...">
+                        <button class="btn btn-primary" onclick="searchProducts()">
+                            <i class="fa fa-search me-2"></i>Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="product-type-filter" onchange="searchProducts()">
+                        <option value="all">Tất cả</option>
+                        <option value="book">Sách</option>
+                        <option value="cloth">Quần áo</option>
+                        <option value="laptop">Laptop</option>
+                        <option value="mobile">Điện thoại</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="resetSearch()">
+                        <i class="fa fa-refresh me-2"></i>Làm mới
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="product-list"></div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function formatPrice(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
+        }
+
+        function renderStars(avg) {
+            const rounded = Math.round(Number(avg || 0));
+            return Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('');
+        }
+
+        async function fetchRatingMap(productType, productIds) {
+            if (!Array.isArray(productIds) || !productIds.length) return {};
+            try {
+                const params = new URLSearchParams({ product_type: productType, product_ids: productIds.join(',') });
+                const response = await fetch(`/api/reviews/avg-ratings/?${params.toString()}`);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || typeof data !== 'object') return {};
+                return data;
+            } catch {
+                return {};
+            }
+        }
+
+        function normalizeProduct(item) {
+            const attrs = item.attributes || {};
+            const subtitleParts = [attrs.brand, attrs.author, attrs.model, attrs.ram].filter(Boolean);
+            return {
+                product_type: item.product_type,
+                product_id: item.id,
+                title: item.name || 'Sản phẩm',
+                subtitle: subtitleParts.join(' | ') || 'N/A',
+                image_url: item.image_url || '',
+                price: item.price || 0,
+                stock: Number(item.stock || 0),
+                reviewable: true,
+                rating_key: String(item.id),
+            };
+        }
+
+        function renderProducts(products, ratingMapMap = {}) {
+            const list = document.getElementById('product-list');
+            if (!products.length) {
+                list.innerHTML = '<div class="col-12"><div class="alert alert-warning">Không có sản phẩm nào.</div></div>';
+                return;
+            }
+
+            list.innerHTML = products.map((product) => {
+                const cover = product.image_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+                
+                const typeMap = ratingMapMap[product.product_type] || {};
+                const rating = typeMap[product.rating_key] || { avg_rating: 0, count: 0 };
+                
+                let typeBadge = '';
+                if (product.product_type === 'book') typeBadge = '<span class="badge text-bg-primary">Book</span>';
+                else if (product.product_type === 'cloth') typeBadge = '<span class="badge text-bg-success">Cloth</span>';
+                else if (product.product_type === 'laptop') typeBadge = '<span class="badge text-bg-info">Laptop</span>';
+                else if (product.product_type === 'mobile') typeBadge = '<span class="badge text-bg-warning">Mobile</span>';
+
+                return `
+                    <div class="col-sm-6 col-lg-4 col-xl-3">
+                        <div class="product-card h-100">
+                            <img src="${cover}" class="product-image" alt="${product.title}">
+                            <div class="p-3 d-flex flex-column h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    ${typeBadge}
+                                    <small class="text-muted">Kho: ${product.stock}</small>
+                                </div>
+                                <h5 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?type=${product.product_type}&id=${product.product_id}">${product.title}</a></h5>
+                                <p class="text-muted mb-2"><small><i class="fa fa-tag me-1"></i>${product.subtitle}</small></p>
+                                <p class="mb-2 small">
+                                    <span class="text-warning">${renderStars(rating.avg_rating)}</span>
+                                    <span class="text-muted">(${rating.count || 0})</span>
+                                </p>
+                                <div class="product-actions d-grid gap-2">
+                                    <p class="text-dark fs-6 fw-bold mb-1">${formatPrice(product.price)}</p>
+                                    <a href="/customer/product-detail/?type=${product.product_type}&id=${product.product_id}" class="btn btn-outline-secondary">
+                                        <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                    </a>
+                                    <button class="btn btn-primary w-100" onclick="addToCart('${product.product_type}', ${product.product_id})" ${product.stock <= 0 ? 'disabled' : ''}>
+                                        <i class="fa fa-shopping-bag me-2"></i>${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadProducts(filters = {}) {
+            const list = document.getElementById('product-list');
+            list.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Đang tải sản phẩm...</p></div></div>';
+
+            try {
+                const response = await fetch('/api/products/');
+                const data = await response.json().catch(() => []);
+                if (!response.ok || !Array.isArray(data)) {
+                    throw new Error('Không thể tải danh sách sản phẩm.');
+                }
+
+                let products = data.map(normalizeProduct);
+
+                if (filters.type && filters.type !== 'all') {
+                    products = products.filter(product => product.product_type === filters.type);
+                }
+
+                if (filters.search) {
+                    const q = filters.search.toLowerCase();
+                    products = products.filter((product) =>
+                        product.title.toLowerCase().includes(q) ||
+                        String(product.subtitle || '').toLowerCase().includes(q)
+                    );
+                }
+
+                products.sort((a, b) => Number(b.product_id) - Number(a.product_id));
+
+                const ratingMapMap = {};
+                for (const type of ['book', 'cloth', 'laptop', 'mobile']) {
+                    const typeIds = products
+                        .filter(product => product.product_type === type && product.reviewable)
+                        .map(p => p.product_id);
+                    if (typeIds.length > 0) {
+                        ratingMapMap[type] = await fetchRatingMap(type, typeIds);
+                    }
+                }
+                renderProducts(products, ratingMapMap);
+            } catch (error) {
+                list.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
+            }
+        }
+
+        function searchProducts() {
+            const query = document.getElementById('search-query').value.trim();
+            const type = document.getElementById('product-type-filter').value;
+            const filters = {};
+            if (query) {
+                filters.search = query;
+            }
+            filters.type = type;
+            loadProducts(filters);
+        }
+
+        function resetSearch() {
+            document.getElementById('search-query').value = '';
+            document.getElementById('product-type-filter').value = 'all';
+            loadProducts();
+        }
+
+        async function addToCart(productType, productId) {
+            const token = localStorage.getItem('customer_token');
+            if (!token) {
+                if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Đăng nhập ngay?')) {
+                    window.location.href = '/user/login/';
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/carts/add/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`,
+                    },
+                    body: JSON.stringify({ product_type: productType, product_id: productId, quantity: 1 }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert('Lỗi: ' + (data.error || 'Không thể thêm vào giỏ hàng'));
+                    return;
+                }
+
+                // Show success notification
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                notification.innerHTML = `
+                    <i class="fa fa-check-circle me-2"></i>Đã thêm vào giỏ hàng thành công!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(notification);
+
+                // Auto remove notification after 3 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+
+                // Update header cart count
+                if (typeof clientUpdateHeaderState === 'function') {
+                    clientUpdateHeaderState();
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        // Search on Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-query');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchProducts();
+                    }
+                });
+            }
+        });
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            loadProducts();
+        });
+    </script>
+</body>
+</html>

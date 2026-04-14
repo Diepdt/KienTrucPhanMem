@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Update Product</title>
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+<body class="sb-nav-fixed">
+    {% include 'admin/layout/header.html' %}
+    <div id="layoutSidenav">
+        {% include 'admin/layout/sidenav.html' %}
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Manage Products</h1>
+                    <ol class="breadcrumb mb-4"><li class="breadcrumb-item"><a href="/admin-panel/">Dashboard</a></li><li class="breadcrumb-item"><a href="/admin-panel/products/">Products</a></li><li class="breadcrumb-item active">Update product</li></ol>
+                    <div class="row col-6 mx-auto">
+                        <form onsubmit="event.preventDefault();updateProduct();">
+                            <div class="mb-3">
+                                <label class="form-label">Product Type:</label>
+                                <select id="p-type" class="form-select" disabled>
+                                    <option value="book">Book</option>
+                                    <option value="cloth">Cloth</option>
+                                    <option value="laptop">Laptop</option>
+                                    <option value="mobile">Mobile</option>
+                                </select>
+                            </div>
+
+                            <!-- Common dynamic basic fields -->
+                            <div class="row">
+                                <div class="mb-3 col-6"><label class="form-label">Name/Title:</label><input id="p-title" type="text" class="form-control" required></div>
+                                <div class="mb-3 col-6"><label class="form-label" id="p-subtitle-label">Author/Brand:</label><input id="p-subtitle" type="text" class="form-control"></div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="mb-3 col-6"><label class="form-label">Price:</label><input id="p-price" type="number" step="0.01" class="form-control" required></div>
+                                <div class="mb-3 col-6"><label class="form-label">Stock:</label><input id="p-stock" type="number" class="form-control" required></div>
+                            </div>
+                            <div class="row">
+                                <div class="mb-3 col-6"><label class="form-label">Category:</label><select id="p-category" class="form-select"><option value="">Chọn category</option></select></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" id="p-image-label">Cover/Image URL:</label><input id="p-image" type="url" class="form-control">
+                            </div>
+
+                            <!-- Extra fields for cloth -->
+                            <div id="cloth-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Size:</label><input id="c-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="c-color" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Material:</label><input id="c-material" type="text" class="form-control"></div>
+                            </div>
+
+                            <!-- Extra fields for laptop -->
+                            <div id="laptop-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Model:</label><input id="l-model" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Processor:</label><input id="l-processor" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">RAM:</label><input id="l-ram" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Storage:</label><input id="l-storage" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Size:</label><input id="l-display-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Type:</label><input id="l-display-type" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Graphics:</label><input id="l-graphics" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Battery:</label><input id="l-battery" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Weight:</label><input id="l-weight" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="l-color" type="text" class="form-control"></div>
+                            </div>
+
+                            <!-- Extra fields for mobile -->
+                            <div id="mobile-fields" class="row d-none">
+                                <div class="mb-3 col-6"><label class="form-label">Model:</label><input id="m-model" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">OS:</label><input id="m-os" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Processor:</label><input id="m-processor" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">RAM:</label><input id="m-ram" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Storage:</label><input id="m-storage" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Size:</label><input id="m-display-size" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Display Type:</label><input id="m-display-type" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Camera:</label><input id="m-camera" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Battery:</label><input id="m-battery" type="text" class="form-control"></div>
+                                <div class="mb-3 col-6"><label class="form-label">Color:</label><input id="m-color" type="text" class="form-control"></div>
+                            </div>
+
+                            <div class="mb-3"><label class="form-label">Description:</label><textarea id="p-desc" class="form-control" rows="3"></textarea></div>
+                            <div id="product-detail-error" class="alert alert-danger d-none py-2 small"></div>
+                            <div style="display:flex; gap: 10px;"><button type="submit" class="btn btn-warning">Submit</button><button type="button" class="btn btn-danger" onclick="deleteProduct()">Delete</button><a class="btn btn-secondary" href="/admin-panel/products/">Cancel</a></div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+            {% include 'admin/layout/footer.html' %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentProductId = null;
+        let currentProductType = 'book';
+
+        function getProductRef() {
+            const url = new URL(window.location.href);
+            const id = url.searchParams.get('id');
+            const type = (url.searchParams.get('type') || 'book').toLowerCase();
+            let finalType = 'book';
+            if (['cloth', 'laptop', 'mobile'].includes(type)) {
+                finalType = type;
+            }
+            return {
+                id: id ? Number(id) : null,
+                type: finalType,
+            };
+        }
+
+        function showDetailError(message) {
+            const el = document.getElementById('product-detail-error');
+            el.textContent = message;
+            el.classList.remove('d-none');
+        }
+
+        function toggleProductTypeFields() {
+            const type = currentProductType;
+            const subtitleLabel = document.getElementById('p-subtitle-label');
+            const imageLabel = document.getElementById('p-image-label');
+            
+            document.getElementById('cloth-fields').classList.add('d-none');
+            document.getElementById('laptop-fields').classList.add('d-none');
+            document.getElementById('mobile-fields').classList.add('d-none');
+
+            imageLabel.textContent = (type === 'book') ? 'Cover URL:' : 'Image URL:';
+            
+            if (type === 'cloth') {
+                subtitleLabel.textContent = 'Brand:';
+                document.getElementById('cloth-fields').classList.remove('d-none');
+            } else if (type === 'laptop') {
+                subtitleLabel.textContent = 'Brand:';
+                document.getElementById('laptop-fields').classList.remove('d-none');
+            } else if (type === 'mobile') {
+                subtitleLabel.textContent = 'Brand:';
+                document.getElementById('mobile-fields').classList.remove('d-none');
+            } else {
+                subtitleLabel.textContent = 'Author:';
+            }
+        }
+
+        function flattenCategories(categories, prefix = '') {
+            const result = [];
+            for (const category of categories || []) {
+                const itemName = prefix ? `${prefix} › ${category.name}` : category.name;
+                result.push({ id: category.id, name: itemName });
+                const children = Array.isArray(category.subcategories) ? category.subcategories : [];
+                if (children.length) {
+                    result.push(...flattenCategories(children, itemName));
+                }
+            }
+            return result;
+        }
+
+        async function loadCategoryOptions(selectedCategoryId = null) {
+            const select = document.getElementById('p-category');
+            try {
+                const res = await fetch(`/api/categories/?product_type=${currentProductType}`);
+                const data = await res.json();
+                if (!res.ok || !Array.isArray(data)) throw new Error();
+
+                const flat = flattenCategories(data);
+                const options = flat.map(item => `<option value="${item.id}">${item.name}</option>`).join('');
+                select.innerHTML = `<option value="">Chọn category</option>${options}`;
+                if (selectedCategoryId !== null && selectedCategoryId !== undefined && selectedCategoryId !== '') {
+                    select.value = String(selectedCategoryId);
+                }
+            } catch (error) {
+                select.innerHTML = '<option value="">Không tải được category</option>';
+            }
+        }
+
+        async function loadProduct() {
+            const productRef = getProductRef();
+            currentProductId = productRef.id;
+            currentProductType = productRef.type;
+            if (!currentProductId) {
+                showDetailError('Thiếu id sản phẩm trên URL.');
+                return;
+            }
+
+            document.getElementById('p-type').value = currentProductType;
+            toggleProductTypeFields();
+
+            const res = await fetch(`/api/products/${currentProductId}/`);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                showDetailError(data.error || 'Không tải được sản phẩm');
+                return;
+            }
+
+            currentProductType = data.product_type || currentProductType;
+            document.getElementById('p-type').value = currentProductType;
+            toggleProductTypeFields();
+
+            const attrs = data.attributes || {};
+
+            document.getElementById('p-price').value = data.price || 0;
+            document.getElementById('p-stock').value = data.stock || 0;
+            await loadCategoryOptions(data.category_id ?? '');
+            document.getElementById('p-desc').value = data.description || '';
+            document.getElementById('p-image').value = data.image_url || '';
+
+            if (currentProductType === 'book') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = attrs.author || '';
+            } else if (currentProductType === 'cloth') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = attrs.brand || '';
+                document.getElementById('c-size').value = attrs.size || '';
+                document.getElementById('c-color').value = attrs.color || '';
+                document.getElementById('c-material').value = attrs.material || '';
+            } else if (currentProductType === 'laptop') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = attrs.brand || '';
+                document.getElementById('l-model').value = attrs.model || '';
+                document.getElementById('l-processor').value = attrs.processor || '';
+                document.getElementById('l-ram').value = attrs.ram || '';
+                document.getElementById('l-storage').value = attrs.storage || '';
+                document.getElementById('l-display-size').value = attrs.display_size || '';
+                document.getElementById('l-display-type').value = attrs.display_type || '';
+                document.getElementById('l-graphics').value = attrs.graphics || '';
+                document.getElementById('l-battery').value = attrs.battery || '';
+                document.getElementById('l-weight').value = attrs.weight || '';
+                document.getElementById('l-color').value = attrs.color || '';
+            } else if (currentProductType === 'mobile') {
+                document.getElementById('p-title').value = data.name || '';
+                document.getElementById('p-subtitle').value = attrs.brand || '';
+                document.getElementById('m-model').value = attrs.model || '';
+                document.getElementById('m-os').value = attrs.os || '';
+                document.getElementById('m-processor').value = attrs.processor || '';
+                document.getElementById('m-ram').value = attrs.ram || '';
+                document.getElementById('m-storage').value = attrs.storage || '';
+                document.getElementById('m-display-size').value = attrs.display_size || '';
+                document.getElementById('m-display-type').value = attrs.display_type || '';
+                document.getElementById('m-camera').value = attrs.camera || '';
+                document.getElementById('m-battery').value = attrs.battery || '';
+                document.getElementById('m-color').value = attrs.color || '';
+            }
+        }
+
+        async function updateProduct() {
+            if (!currentProductId) return;
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                showDetailError('Bạn cần đăng nhập admin.');
+                return;
+            }
+
+            const common = {
+                price: Number(document.getElementById('p-price').value || 0),
+                stock: Number(document.getElementById('p-stock').value || 0),
+                category_id: document.getElementById('p-category').value ? Number(document.getElementById('p-category').value) : null,
+                description: document.getElementById('p-desc').value.trim(),
+            };
+
+            let payload;
+            payload = {
+                ...common,
+                name: document.getElementById('p-title').value.trim(),
+                product_type: currentProductType,
+                image_url: document.getElementById('p-image').value.trim(),
+                attributes: {
+                    brand: document.getElementById('p-subtitle').value.trim(),
+                },
+            };
+
+            if (currentProductType === 'book') {
+                payload.attributes.author = document.getElementById('p-subtitle').value.trim();
+            } else if (currentProductType === 'cloth') {
+                payload.attributes.size = document.getElementById('c-size').value.trim();
+                payload.attributes.color = document.getElementById('c-color').value.trim();
+                payload.attributes.material = document.getElementById('c-material').value.trim();
+            } else if (currentProductType === 'laptop') {
+                payload.attributes.model = document.getElementById('l-model').value.trim();
+                payload.attributes.processor = document.getElementById('l-processor').value.trim();
+                payload.attributes.ram = document.getElementById('l-ram').value.trim();
+                payload.attributes.storage = document.getElementById('l-storage').value.trim();
+                payload.attributes.display_size = document.getElementById('l-display-size').value.trim();
+                payload.attributes.display_type = document.getElementById('l-display-type').value.trim();
+                payload.attributes.graphics = document.getElementById('l-graphics').value.trim();
+                payload.attributes.battery = document.getElementById('l-battery').value.trim();
+                payload.attributes.weight = document.getElementById('l-weight').value.trim();
+                payload.attributes.color = document.getElementById('l-color').value.trim();
+            } else if (currentProductType === 'mobile') {
+                payload.attributes.model = document.getElementById('m-model').value.trim();
+                payload.attributes.os = document.getElementById('m-os').value.trim();
+                payload.attributes.processor = document.getElementById('m-processor').value.trim();
+                payload.attributes.ram = document.getElementById('m-ram').value.trim();
+                payload.attributes.storage = document.getElementById('m-storage').value.trim();
+                payload.attributes.display_size = document.getElementById('m-display-size').value.trim();
+                payload.attributes.display_type = document.getElementById('m-display-type').value.trim();
+                payload.attributes.camera = document.getElementById('m-camera').value.trim();
+                payload.attributes.battery = document.getElementById('m-battery').value.trim();
+                payload.attributes.color = document.getElementById('m-color').value.trim();
+            }
+
+            const res = await fetch(`/api/products/${currentProductId}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                showDetailError(data.error || Object.values(data || {}).flat().join(' | ') || 'Cập nhật thất bại');
+                return;
+            }
+            alert('Cập nhật thành công');
+        }
+
+        async function deleteProduct() {
+            if (!currentProductId) return;
+            if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return;
+
+            const token = localStorage.getItem('admin_token');
+            if (!token) return showDetailError('Bạn cần đăng nhập admin.');
+
+            const res = await fetch(`/api/products/${currentProductId}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Token ${token}` },
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) return showDetailError(data.error || 'Xóa thất bại');
+            window.location.href = '/admin-panel/products/';
+        }
+
+        loadProduct();
+    </script>
+</body>
+</html>

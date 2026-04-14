@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - LaptopShop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-container { background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); overflow: hidden; max-width: 450px; width: 100%; }
+        .login-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .login-body { padding: 40px; }
+        .btn-login { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; padding: 12px; font-size: 16px; font-weight: 600; width: 100%; color: white; }
+        .register-link { text-align: center; margin-top: 25px; padding-top: 25px; border-top: 1px solid #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-laptop fa-3x mb-3"></i>
+            <h2>Đăng Nhập</h2>
+            <p class="mb-0 mt-2">Chào mừng bạn đến với LaptopShop</p>
+        </div>
+        <div class="login-body">
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input id="login-email" type="email" class="form-control" placeholder="Email" required>
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                <input id="login-password" type="password" class="form-control" placeholder="Mật khẩu" required>
+            </div>
+            <div id="login-error" class="alert alert-danger d-none py-2 small"></div>
+            <button type="button" class="btn btn-login" onclick="loginUnified()">
+                <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+            </button>
+            <div class="register-link">
+                <p class="mb-0">Chưa có tài khoản? <a href="/user/register/">Đăng ký ngay</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function postJson(path, body) {
+            const res = await fetch(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            let data = {};
+            try { data = await res.json(); } catch {}
+            return { ok: res.ok, status: res.status, data };
+        }
+
+        function showError(message) {
+            const el = document.getElementById('login-error');
+            el.textContent = message;
+            el.classList.remove('d-none');
+        }
+
+        function clearErrors() {
+            document.getElementById('login-error').classList.add('d-none');
+        }
+
+        function clearAuthStorage() {
+            localStorage.removeItem('customer_token');
+            localStorage.removeItem('customer_info');
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
+            localStorage.removeItem('admin_type');
+        }
+
+        async function loginUnified() {
+            clearErrors();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showError('Vui lòng nhập email và mật khẩu.');
+                return;
+            }
+
+            clearAuthStorage();
+
+            let result = await postJson('/api/manager/login/', { email, password });
+            if (result.ok) {
+                localStorage.setItem('admin_token', result.data.token);
+                localStorage.setItem('admin_info', JSON.stringify(result.data.manager || {}));
+                localStorage.setItem('admin_type', 'manager');
+                window.location.href = '/admin-panel/';
+                return;
+            }
+
+            result = await postJson('/api/staff/login/', { email, password });
+            if (result.ok) {
+                localStorage.setItem('admin_token', result.data.token);
+                localStorage.setItem('admin_info', JSON.stringify(result.data.staff || {}));
+                localStorage.setItem('admin_type', 'staff');
+                window.location.href = '/admin-panel/';
+                return;
+            }
+
+            result = await postJson('/api/customers/login/', { email, password });
+            if (!result.ok) {
+                showError(result.data.error || 'Đăng nhập thất bại');
+                return;
+            }
+
+            localStorage.setItem('customer_token', result.data.token);
+            localStorage.setItem('customer_info', JSON.stringify(result.data.customer || {}));
+            window.location.href = '/customer/';
+        }
+
+        document.getElementById('login-password').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                loginUnified();
+            }
+        });
+    </script>
+</body>
+</html>

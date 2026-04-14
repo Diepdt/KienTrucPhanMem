@@ -1,0 +1,14 @@
+from rest_framework import serializers
+
+from catalog.models import Category
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    subcategories = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'description', 'product_type', 'parent', 'subcategories', 'created_at']
+
+    def get_subcategories(self, obj):
+        return CategorySerializer(obj.subcategories.all(), many=True).data

@@ -1,0 +1,71 @@
+<div class="container-fluid bg-dark text-white-50 footer pt-3 mt-4">
+    <div class="container py-3">
+        <div class="pb-2 mb-2" style="border-bottom: 1px solid rgba(226, 175, 24, 0.5);">
+            <div class="row g-3">
+                <div class="col-lg-3">
+                    <a href="/customer/">
+                        <h5 class="text-primary mb-0">EcomMart</h5>
+                        <p class="text-secondary mb-0 small">Sản phẩm chất lượng</p>
+                    </a>
+                </div>
+                <div class="col-lg-9 text-end">
+                    <a href="#" class="btn btn-primary border-2 border-primary rounded-circle back-to-top me-2" style="width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="fa fa-arrow-up"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <div class="footer-item">
+                    <h6 class="text-light mb-2">Vì sao chọn chúng tôi?</h6>
+                    <p class="mb-0 small">Sách chính hãng, giao hàng nhanh và hỗ trợ 24/7.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex flex-column text-start footer-item">
+                    <h6 class="text-light mb-2">Tài khoản</h6>
+                    <a class="btn-link small" style="text-decoration: none;" href="/user/login/">Đăng nhập</a>
+                    <a class="btn-link small" style="text-decoration: none;" href="/user/register/">Đăng ký</a>
+                    <a class="btn-link small" style="text-decoration: none;" href="/customer/cart/">Giỏ hàng</a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="footer-item">
+                    <h6 class="text-light mb-2">Liên hệ</h6>
+                    <p class="small mb-1">Address: Hà Đông - Hà Nội</p>
+                    <p class="small mb-1">Email: support@EcomMart.local</p>
+                    <p class="small">Support 24/7</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container-fluid copyright bg-dark py-2">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <span class="text-light small"><i class="fas fa-copyright text-light me-1"></i>EcomMart 2026. All rights reserved.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'components/ai_chat_widget.html' %}
+
+<script>
+// Back to top button functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const backToTopButton = document.querySelector('.back-to-top');
+
+    if (backToTopButton) {
+        backToTopButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+});
+</script>

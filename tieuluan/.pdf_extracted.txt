@@ -1,0 +1,157 @@
+===== PAGE 1 =====
+Thiết kế Product Service trong hệ thống
+Microservices E-commerce
+Nhom 6
+Ngày 7 tháng 4 năm 2026
+1 Giới thiệu
+Trong hệ thống E-commerce, việc thiết kế kiến trúc Microservices đóng vai trò quan
+trọng. Một vấn đề phổ biến là:
+Có nên tách service theo từng loại sản phẩm hay gộp tất cả vào một Product
+Service?
+2 Hai cách tiếp cận
+2.1 Cách 1: Tách theo sản phẩm
+PhoneService
+LaptopService
+FashionService
+CosmeticService
+2.2 Cách 2: Product Service
+ProductService
+Phone
+Laptop
+Fashion
+3 So sánh
+Tiêu chí Tách riêng Product Service
+DDD Sai Đúng
+Maintain Khó Dễ
+Scale Kém Tốt
+Tái sử dụng Thấp Cao
+1
+
+===== PAGE 2 =====
+4 Thiết kế theo DDD
+Bounded Context trong E-commerce:
+•Catalog (Product)
+•Cart
+•Order
+•Inventory
+=> Product nằm trong một domain duy nhất.
+2
+
+===== PAGE 3 =====
+5 Folder Structure (Chi tiết)
+5.1 Nguyên tắc
+•Không tách theo category
+•Category là dữ liệu
+•Structure theo domain
+5.2 Cấu trúc thư mục
+product_service/
+manage.py
+config/
+settings/
+base.py
+dev.py
+prod.py
+urls.py
+asgi.py
+modules/
+catalog/
+domain/
+entities/
+product.py # Product core entity
+variant.py # Bin th (size, color)
+category.py # Category tree
+brand.py
+product_type.py
+value_objects/
+money.py
+sku.py
+attributes.py # JSON attributes
+repositories/
+product_repository.py
+application/
+services/
+product_service.py
+commands/
+create_product.py
+update_product.py
+create_variant.py
+queries/
+get_product.py
+list_products.py
+filter_products.py
+3
+
+===== PAGE 4 =====
+infrastructure/
+models/
+product_model.py
+category_model.py
+variant_model.py
+brand_model.py
+product_type_model.py
+repositories/
+product_repository_impl.py
+querysets/
+product_queryset.py
+migrations/
+presentation/
+api/
+views/
+product_view.py
+category_view.py
+serializers/
+product_serializer.py
+category_serializer.py
+urls.py
+admin.py
+seeds/
+categories_seed.py
+products_seed.py
+tests/
+test_product.py
+test_category.py
+shared/
+database/
+exceptions/
+utils/
+docker-compose.yml
+5.3 Giải thích
+•Domain: logic thuần, không phụ thuộc framework
+•Application: xử lý use case
+•Infrastructure: ORM, database
+•Presentation: API
+4
+
+===== PAGE 5 =====
+6 Database Design
+CREATE TABLE products (
+id SERIAL PRIMARY KEY,
+name TEXT,
+category_id INT,
+price NUMERIC,
+attributes JSONB
+);
+6.1 Ví dụ
+{
+"ram": "16GB",
+"cpu": "i7"
+}
+7 Code Example
+class Product(models.Model):
+name = models.CharField(max_length=255)
+attributes = models.JSONField()
+8 Workflow
+1. User request product
+2. Product Service trả dữ liệu
+3. Cart lưu product_id
+4. Order xử lý thanh toán
+9 Khi nào tách service
+•Khác business logic hoàn toàn
+•Scale cực lớn
+•Team tách riêng
+10 Kết luận
+•1 Product Service duy nhất
+•Không tách theo category
+•Category là dữ liệu
+Microservices chia theo hành vi hệ thống, không phải theo sản phẩm.
+5

@@ -1,0 +1,304 @@
+name: tieuluan_v2
+
+services:
+
+  # ============================================================
+  # MongoDB - Luu product attributes linh hoat
+  # ============================================================
+  mongodb:
+    image: mongo:7
+    restart: always
+    ports:
+      - "47017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  # ============================================================
+  # MySQL - Một instance, nhiều database (mỗi service dùng 1 DB)
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "43336:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ============================================================
+  # staff-service (port 8001)
+  # ============================================================
+  staff-service:
+    build: ./staff-service
+    restart: always
+    ports:
+      - "9001:8001"
+    environment:
+      DB_NAME: tieuluan_staff
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "staff-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # manager-service (port 8002)
+  # ============================================================
+  manager-service:
+    build: ./manager-service
+    restart: always
+    ports:
+      - "9002:8002"
+    environment:
+      DB_NAME: tieuluan_manager
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "manager-secret-key-production"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      staff-service:
+        condition: service_started
+
+  # ============================================================
+  # customer-service (port 8003)
+  # ============================================================
+  customer-service:
+    build: ./customer-service
+    restart: always
+    ports:
+      - "9003:8003"
+    environment:
+      DB_NAME: tieuluan_customer
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "customer-secret-key-production"
+      CART_SERVICE_URL: "http://cart-service:8006"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # product-service (port 8004)
+  # ============================================================
+  product-service:
+    build: ./product-service
+    restart: always
+    ports:
+      - "9004:8004"
+    environment:
+      DB_NAME: tieuluan_catalog
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      MONGO_URI: "mongodb://mongodb:27017"
+      MONGO_DB_NAME: "tieuluan_product"
+      MONGO_ATTRIBUTES_COLLECTION: "product_attributes"
+      SECRET_KEY: "catalog-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+
+  # ============================================================
+  # cart-service (port 8006)
+  # ============================================================
+  cart-service:
+    build: ./cart-service
+    restart: always
+    ports:
+      - "9006:8006"
+    environment:
+      DB_NAME: tieuluan_cart
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "cart-secret-key-production"
+      PRODUCT_SERVICE_URL: "http://product-service:8004"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+
+  # ============================================================
+  # order-service (port 8007)
+  # ============================================================
+  order-service:
+    build: ./order-service
+    restart: always
+    ports:
+      - "9007:8007"
+    environment:
+      DB_NAME: tieuluan_order
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "order-secret-key-production"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+      CART_SERVICE_URL: "http://cart-service:8006"
+      PRODUCT_SERVICE_URL: "http://product-service:8004"
+      PAY_SERVICE_URL: "http://pay-service:8009"
+      SHIP_SERVICE_URL: "http://ship-service:8008"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+
+  # ============================================================  # ship-service (port 8008)
+  # ============================================================
+  ship-service:
+    build: ./ship-service
+    restart: always
+    ports:
+      - "9008:8008"
+    environment:
+      DB_NAME: tieuluan_ship
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "ship-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # pay-service (port 8009)
+  # ============================================================
+  pay-service:
+    build: ./pay-service
+    restart: always
+    ports:
+      - "9009:8009"
+    environment:
+      DB_NAME: tieuluan_pay
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "pay-secret-key-production"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================================================
+  # comment-rate-service (port 8010)
+  # ============================================================
+  comment-rate-service:
+    build: ./comment-rate-service
+    restart: always
+    ports:
+      - "9010:8010"
+    environment:
+      DB_NAME: tieuluan_comment
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "comment-secret-key-production"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      ORDER_SERVICE_URL: "http://order-service:8007"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+
+  # ============================================================
+  # recommender-ai-service (port 8011)
+  # ============================================================
+  recommender-ai-service:
+    profiles:
+      - skip
+    build: ./recommender-ai-service
+    restart: always
+    ports:
+      - "9011:8011"
+    environment:
+      DB_NAME: tieuluan_recommender
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      SECRET_KEY: "recommender-secret-key-production"
+      COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
+      ORDER_SERVICE_URL: "http://order-service:8007"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      comment-rate-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+
+  # ============================================================
+  # api-gateway (port 8000) - Điểm vào duy nhất cho client
+  # ============================================================
+  api-gateway:
+    build: ./api-gateway
+    restart: always
+    ports:
+      - "9000:8000"
+    environment:
+      SECRET_KEY: "gateway-secret-key-production"
+      DB_NAME: "tieuluan_gateway"
+      DB_USER: "root"
+      DB_PASSWORD: "123456"
+      DB_HOST: "mysql"
+      DB_PORT: "3306"
+      STAFF_SERVICE_URL: "http://staff-service:8001"
+      MANAGER_SERVICE_URL: "http://manager-service:8002"
+      CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      PRODUCT_SERVICE_URL: "http://product-service:8004"
+      CART_SERVICE_URL: "http://cart-service:8006"
+      ORDER_SERVICE_URL: "http://order-service:8007"
+      SHIP_SERVICE_URL: "http://ship-service:8008"
+      PAY_SERVICE_URL: "http://pay-service:8009"
+      COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
+      RECOMMENDER_SERVICE_URL: "http://recommender-ai-service:8011"
+    depends_on:
+      - staff-service
+      - manager-service
+      - customer-service
+      - product-service
+      - cart-service
+      - order-service
+      - ship-service
+      - pay-service
+      - comment-rate-service
+
+volumes:
+  mysql_data:
+  mongodb_data:

@@ -1,0 +1,117 @@
+<header class="bg-white border-bottom sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light container py-2">
+        <a href="/customer/" class="navbar-brand fw-bold fs-3 text-primary">EcomMart</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+            <div class="navbar-nav ms-auto me-3">
+                <a href="/customer/" class="nav-link active">Trang chủ</a>
+                <a href="/customer/product/" class="nav-link">Sản phẩm</a>
+                <a href="/customer/agent/" class="nav-link">Trợ lý AI</a>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <a href="#" class="position-relative text-dark" id="cart-link" aria-label="Giỏ hàng">
+                    <i class="fa fa-shopping-bag fa-lg"></i>
+                    <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">0</span>
+                </a>
+
+                <div class="dropdown d-none" id="client-user-dropdown">
+                    <a href="#" class="text-dark" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user fa-lg"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="dropdownMenuLink" style="min-width: 260px;">
+                        <li>
+                            <div class="fw-semibold" id="client-user-name">Customer</div>
+                            <div class="small text-muted" id="client-user-email"></div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/customer/profile/" id="client-profile-shortcut">Thông tin cá nhân</a></li>
+                        <li><a class="dropdown-item" href="#" id="client-cart-shortcut">Giỏ hàng</a></li>
+                        <li><a class="dropdown-item" href="#" id="client-orders-shortcut">Lịch sử đơn hàng</a></li>
+                        <li><a class="dropdown-item" href="/customer/agent/">Trợ lý AI</a></li>
+                        <li><button class="dropdown-item text-danger" onclick="clientLogout()">Đăng xuất</button></li>
+                    </ul>
+                </div>
+
+                <a href="/user/login/" class="text-dark" id="client-login-link" aria-label="Đăng nhập">
+                    <i class="fas fa-user fa-lg"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<script>
+    async function clientUpdateHeaderState() {
+        const token = localStorage.getItem('customer_token');
+        const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+        const loginLink = document.getElementById('client-login-link');
+        const userDropdown = document.getElementById('client-user-dropdown');
+
+        if (token) {
+            loginLink.classList.add('d-none');
+            userDropdown.classList.remove('d-none');
+            document.getElementById('client-user-name').textContent = info.name || 'Customer';
+            document.getElementById('client-user-email').textContent = info.email || '';
+        } else {
+            loginLink.classList.remove('d-none');
+            userDropdown.classList.add('d-none');
+        }
+
+        if (token && info.id) {
+            try {
+                const res = await fetch(`/api/carts/${info.id}/`, {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok && data.items) {
+                    const totalItems = data.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+                    document.getElementById('cart-count').textContent = String(totalItems);
+                }
+            } catch {}
+        }
+
+        document.getElementById('cart-link').addEventListener('click', function (event) {
+            event.preventDefault();
+            if (!token) {
+                window.location.href = '/user/login/';
+                return;
+            }
+            window.location.href = '/customer/cart/';
+        });
+
+        const shortcut = document.getElementById('client-cart-shortcut');
+        if (shortcut) {
+            shortcut.addEventListener('click', function (event) {
+                event.preventDefault();
+                window.location.href = '/customer/cart/';
+            });
+        }
+
+        const orderShortcut = document.getElementById('client-orders-shortcut');
+        if (orderShortcut) {
+            orderShortcut.addEventListener('click', function (event) {
+                event.preventDefault();
+                window.location.href = '/customer/orders/';
+            });
+        }
+    }
+
+    async function clientLogout() {
+        const token = localStorage.getItem('customer_token');
+        if (token) {
+            try {
+                await fetch('/api/customers/logout/', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+            } catch {}
+        }
+        localStorage.removeItem('customer_token');
+        localStorage.removeItem('customer_info');
+        window.location.href = '/user/login/';
+    }
+</script>

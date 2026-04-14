@@ -1,0 +1,558 @@
+﻿<!-- AI Chat Assistant Widget -->
+<!-- Sá»­ dá»¥ng file nÃ y trong cÃ¡c template cá»§a API Gateway -->
+<div id="ai-chat-widget" class="ai-chat-container">
+    <style>
+        .ai-chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            z-index: 9999;
+        }
+
+        .chat-bubble-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-bubble-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+        }
+
+        .chat-bubble-button.active {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .chat-window {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 380px;
+            height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 40px rgba(0, 0, 0, 0.16);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-window.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat-header .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f5f5f5;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system .message-content {
+            background: #fff3cd;
+            color: #856404;
+            font-size: 13px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .chat-input-area {
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+
+        .chat-send-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-indicator {
+            display: flex;
+            gap: 6px;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { opacity: 0.5; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1); }
+        }
+
+        .recommendations {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .recommendations-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .recommendation-item {
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .recommendation-item:hover {
+            background: #f0f0f0;
+        }
+
+        .recommendation-name {
+            font-weight: 500;
+            color: #667eea;
+        }
+
+        .recommendation-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 480px) {
+            .chat-window {
+                width: calc(100vw - 20px);
+                height: 70vh;
+                right: 10px;
+            }
+        }
+    </style>
+
+    <!-- Chat Button -->
+    <button class="chat-bubble-button" id="chat-bubble-btn" title="Chat vá»›i tÆ° váº¥n viÃªn AI">
+        ðŸ’¬
+    </button>
+
+    <!-- Chat Window -->
+    <div class="chat-window" id="chat-window">
+        <div class="chat-header">
+            <h3>ðŸ¤– AI TÆ° Váº¥n ViÃªn</h3>
+            <button class="close-btn" id="close-chat-btn">Ã—</button>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message system">
+                <div class="message-content">
+                    ChÃ o báº¡n! ðŸ‘‹ TÃ´i lÃ  trá»£ lÃ½ AI cá»§a cá»­a hÃ ng. HÃ£y há»i tÃ´i báº¥t cá»© Ä‘iá»u gÃ¬ vá» sáº£n pháº©m
+                    hoáº·c dá»‹ch vá»¥ cá»§a chÃºng tÃ´i!
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input
+                type="text"
+                class="chat-input"
+                id="chat-input"
+                placeholder="GÃµ cÃ¢u há»i cá»§a báº¡n..."
+                autocomplete="off"
+            />
+            <button class="chat-send-btn" id="chat-send-btn">âž¤</button>
+        </div>
+    </div>
+</div>
+
+<script>
+class AIChatWidget {
+    constructor() {
+        this.chatButton = document.getElementById('chat-bubble-btn');
+        this.chatWindow = document.getElementById('chat-window');
+        this.closeBtn = document.getElementById('close-chat-btn');
+        this.chatInput = document.getElementById('chat-input');
+        this.sendBtn = document.getElementById('chat-send-btn');
+        this.messagesContainer = document.getElementById('chat-messages');
+        
+        this.isOpen = false;
+        this.isLoading = false;
+        this.customerId = this.getCustomerId();
+        this.conversationId = null;
+        
+        this.initEventListeners();
+        this.checkAuthentication();
+    }
+    
+    initEventListeners() {
+        this.chatButton.addEventListener('click', () => this.toggleChat());
+        this.closeBtn.addEventListener('click', () => this.closeChat());
+        this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+    }
+    
+    getCustomerId() {
+        // Láº¥y customer ID tá»«:
+        // 1. localStorage (náº¿u Ä‘Ã£ lÆ°u)
+        // 2. Data attribute tá»« HTML element
+        // 3. Query param tá»« URL
+        // 4. Cookie
+        
+        const stored = localStorage.getItem('customer_id');
+        if (stored) return stored;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromUrl = urlParams.get('customer_id');
+        if (fromUrl) return fromUrl;
+        
+        const elem = document.querySelector('[data-customer-id]');
+        if (elem) return elem.dataset.customerId;
+        
+        // Fallback: generate temporary ID
+        let tempId = sessionStorage.getItem('temp_customer_id');
+        if (!tempId) {
+            tempId = 'guest_' + Date.now();
+            sessionStorage.setItem('temp_customer_id', tempId);
+        }
+        return tempId;
+    }
+    
+    checkAuthentication() {
+        if (this.customerId.startsWith('guest_')) {
+            this.showSystemMessage(
+                'â„¹ï¸ Báº¡n chÆ°a Ä‘Äƒng nháº­p. Má»™t sá»‘ tÃ­nh nÄƒng cÃ¡ nhÃ¢n hÃ³a cÃ³ thá»ƒ khÃ´ng kháº£ dá»¥ng.'
+            );
+        }
+    }
+    
+    toggleChat() {
+        if (this.isOpen) {
+            this.closeChat();
+        } else {
+            this.openChat();
+        }
+    }
+    
+    openChat() {
+        this.isOpen = true;
+        this.chatWindow.classList.add('active');
+        this.chatButton.classList.add('active');
+        this.chatInput.focus();
+    }
+    
+    closeChat() {
+        this.isOpen = false;
+        this.chatWindow.classList.remove('active');
+        this.chatButton.classList.remove('active');
+    }
+    
+    showSystemMessage(text) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message system';
+        msgEl.innerHTML = `<div class="message-content">${this.escapeHtml(text)}</div>`;
+        this.messagesContainer.appendChild(msgEl);
+        this.scrollToBottom();
+    }
+    
+    showUserMessage(text) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message user';
+        msgEl.innerHTML = `<div class="message-content">${this.escapeHtml(text)}</div>`;
+        this.messagesContainer.appendChild(msgEl);
+        this.scrollToBottom();
+    }
+    
+    showAssistantMessage(text) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message assistant';
+        msgEl.innerHTML = `<div class="message-content">${this.formatText(text)}</div>`;
+        this.messagesContainer.appendChild(msgEl);
+        this.scrollToBottom();
+    }
+    
+    showRecommendations(products) {
+        if (!products || products.length === 0) return;
+        
+        const recEl = document.createElement('div');
+        recEl.className = 'message assistant';
+        
+        let html = '<div class="message-content"><div class="recommendations">';
+        html += '<div class="recommendations-title">ðŸ’¡ Sáº£n pháº©m Ä‘Æ°á»£c Ä‘á» xuáº¥t:</div>';
+        
+        for (const product of products.slice(0, 3)) {
+            const name = product.name || `${product.service_type.capitalize()} #${product.product_id}`;
+            const score = (product.score * 100).toFixed(0);
+            
+            html += `<div class="recommendation-item">`;
+            html += `<div class="recommendation-name">${this.escapeHtml(name)}</div>`;
+            html += `<div class="recommendation-info">Score: ${score}% | Loáº¡i: ${product.service_type}</div>`;
+            html += `</div>`;
+        }
+        
+        html += '</div></div>';
+        recEl.innerHTML = html;
+        this.messagesContainer.appendChild(recEl);
+        this.scrollToBottom();
+    }
+    
+    showLoading() {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message assistant';
+        msgEl.id = 'loading-message';
+        msgEl.innerHTML = `
+            <div class="loading-indicator">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+        `;
+        this.messagesContainer.appendChild(msgEl);
+        this.scrollToBottom();
+    }
+    
+    hideLoading() {
+        const loadingEl = document.getElementById('loading-message');
+        if (loadingEl) {
+            loadingEl.remove();
+        }
+    }
+    
+    scrollToBottom() {
+        setTimeout(() => {
+            this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        }, 0);
+    }
+    
+    async sendMessage() {
+        if (this.isLoading) return;
+        
+        const message = this.chatInput.value.trim();
+        if (!message) return;
+        
+        // Display user message
+        this.showUserMessage(message);
+        this.chatInput.value = '';
+        this.chatInput.focus();
+        
+        // Show loading
+        this.isLoading = true;
+        this.sendBtn.disabled = true;
+        this.showLoading();
+        
+        try {
+            const response = await fetch('/api/ai/chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    customer_id: parseInt(this.customerId.replace('guest_', '')) || 0,
+                    message: message,
+                    conversation_id: this.conversationId
+                })
+            });
+            
+            const data = await response.json();
+            
+            this.hideLoading();
+            
+            if (data.success || data.response) {
+                // Save conversation ID
+                this.conversationId = data.conversation_id;
+                
+                // Show response
+                this.showAssistantMessage(data.response);
+                
+                // Show recommendations if available
+                if (data.recommended_products && data.recommended_products.length > 0) {
+                    this.showRecommendations(data.recommended_products);
+                }
+            } else {
+                this.showSystemMessage('âŒ CÃ³ lá»—i xáº£y ra: ' + (data.message || 'Vui lÃ²ng thá»­ láº¡i'));
+            }
+        } catch (error) {
+            this.hideLoading();
+            console.error('Chat error:', error);
+            this.showSystemMessage('âŒ Káº¿t ná»‘i tháº¥t báº¡i. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i internet.');
+        } finally {
+            this.isLoading = false;
+            this.sendBtn.disabled = false;
+            this.chatInput.focus();
+        }
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    formatText(text) {
+        // Convert URLs to links
+        text = text.replace(
+            /(\bhttps?:\/\/[^\s]+)/gi,
+            '<a href="$1" target="_blank">$1</a>'
+        );
+        
+        // Convert newlines to <br>
+        text = text.replace(/\n/g, '<br>');
+        
+        return text;
+    }
+}
+
+// Initialize widget when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        new AIChatWidget();
+    });
+} else {
+    new AIChatWidget();
+}
+</script>

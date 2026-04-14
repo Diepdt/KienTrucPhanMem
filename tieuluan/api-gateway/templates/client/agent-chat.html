@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EcomMart - Trợ lý AI</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; }
+        .chat-shell {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8fbff;
+        }
+        .chat-body {
+            height: 480px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #fcfdff;
+        }
+        .msg {
+            max-width: 80%;
+            padding: 0.75rem 0.9rem;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            white-space: pre-wrap;
+        }
+        .msg.user {
+            margin-left: auto;
+            background: #0d6efd;
+            color: #fff;
+        }
+        .msg.bot {
+            margin-right: auto;
+            background: #eef3fb;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    {% include 'client/layout/header.html' %}
+
+    <main class="container py-4 py-md-5">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h1 class="h3 mb-0"><i class="fa fa-robot me-2 text-primary"></i>Trợ lý bán hàng AI</h1>
+            <a href="/customer/product/" class="btn btn-outline-secondary"><i class="fa fa-book me-2"></i>Xem sản phẩm</a>
+        </div>
+
+        <div class="chat-shell">
+            <div class="chat-header">
+                <div class="fw-semibold">BookBot có thể giúp bạn tìm sách và thêm vào giỏ hàng.</div>
+                <div class="small text-muted">Gợi ý: "Tìm sách Python", "Thêm sách id 12 vào giỏ"</div>
+            </div>
+            <div id="chat-body" class="chat-body"></div>
+            <div class="p-3 border-top">
+                <div class="input-group">
+                    <input id="chat-input" class="form-control" placeholder="Nhập câu hỏi của bạn...">
+                    <button id="chat-send" class="btn btn-primary" onclick="sendMessage()">
+                        <i class="fa fa-paper-plane me-1"></i>Gửi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {% include 'client/layout/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const sessionId = `customer-${Date.now()}`;
+
+        function appendMessage(role, text) {
+            const body = document.getElementById('chat-body');
+            const div = document.createElement('div');
+            div.className = `msg ${role}`;
+            div.textContent = text;
+            body.appendChild(div);
+            body.scrollTop = body.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const customerInfo = JSON.parse(localStorage.getItem('customer_info') || '{}');
+            const customerId = customerInfo.id || null;
+
+            appendMessage('user', message);
+            input.value = '';
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/agent/chat/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        session_id: sessionId,
+                        user_id: customerId
+                    })
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    appendMessage('bot', data.error || 'AI Agent hiện chưa phản hồi được.');
+                    return;
+                }
+
+                appendMessage('bot', data.reply || 'Mình đã nhận yêu cầu của bạn.');
+            } catch (error) {
+                appendMessage('bot', 'Lỗi kết nối AI Agent: ' + error.message);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        document.getElementById('chat-input').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        window.addEventListener('load', () => {
+            if (typeof clientUpdateHeaderState === 'function') {
+                clientUpdateHeaderState();
+            }
+            appendMessage('bot', 'Xin chào! Mình là BookBot. Bạn muốn tìm sách gì hôm nay?');
+        });
+    </script>
+</body>
+</html>
