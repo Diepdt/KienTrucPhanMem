@@ -1,4 +1,4 @@
-﻿<!-- AI Chat Assistant Widget -->
+<!-- AI Chat Assistant Widget -->
 <!-- Su dung file nay trong cac template cua API Gateway -->
 <div id="ai-chat-widget" class="ai-chat-container">
     <style>
@@ -500,7 +500,7 @@ class AIChatWidget {
                 body: JSON.stringify({
                     customer_id: customerId,
                     message: message,
-                    conversation_id: this.conversationId
+                    ...(this.conversationId ? { conversation_id: this.conversationId } : {})
                 })
             });
             clearTimeout(timeoutId);

@@ -105,7 +105,7 @@
                     body: JSON.stringify({
                         customer_id: Number(customerId || 0),
                         message,
-                        conversation_id: sessionId
+                        ...(sessionId ? { conversation_id: sessionId } : {})
                     })
                 });
                 const data = await response.json().catch(() => ({}));

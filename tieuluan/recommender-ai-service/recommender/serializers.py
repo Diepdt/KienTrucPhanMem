@@ -19,4 +19,4 @@ class BehaviorEventSerializer(serializers.ModelSerializer):
 class ChatRequestSerializer(serializers.Serializer):
     customer_id = serializers.IntegerField(min_value=0)
     message = serializers.CharField(max_length=2000)
-    conversation_id = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    conversation_id = serializers.CharField(max_length=120, required=False, allow_blank=True, allow_null=True)

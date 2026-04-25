@@ -21,7 +21,7 @@ kg_service = KnowledgeGraphService(
     uri=os.getenv("NEO4J_URI", ""), username=os.getenv("NEO4J_USER", ""), password=os.getenv("NEO4J_PASSWORD", "")
 )
 recommendation_service = RecommendationService(model_path=os.getenv("LSTM_MODEL_PATH"))
-chatbot_service = ChatbotService(kg_service)
+chatbot_service = ChatbotService()
 
 
 def _error_response(message: str, code=status.HTTP_400_BAD_REQUEST) -> Response:
