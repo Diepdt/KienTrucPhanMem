@@ -1,5 +1,5 @@
 ﻿<!-- AI Chat Assistant Widget -->
-<!-- Sá»­ dá»¥ng file nÃ y trong cÃ¡c template cá»§a API Gateway -->
+<!-- Su dung file nay trong cac template cua API Gateway -->
 <div id="ai-chat-widget" class="ai-chat-container">
     <style>
         .ai-chat-container {
@@ -273,22 +273,22 @@
     </style>
 
     <!-- Chat Button -->
-    <button class="chat-bubble-button" id="chat-bubble-btn" title="Chat vá»›i tÆ° váº¥n viÃªn AI">
-        ðŸ’¬
+    <button class="chat-bubble-button" id="chat-bubble-btn" title="Chat voi tu van vien AI">
+        <i class="fa fa-comment-dots" aria-hidden="true"></i>
     </button>
 
     <!-- Chat Window -->
     <div class="chat-window" id="chat-window">
         <div class="chat-header">
-            <h3>ðŸ¤– AI TÆ° Váº¥n ViÃªn</h3>
-            <button class="close-btn" id="close-chat-btn">Ã—</button>
+            <h3><i class="fa fa-robot me-1"></i> AI Tu Van Vien</h3>
+            <button class="close-btn" id="close-chat-btn">&times;</button>
         </div>
 
         <div class="chat-messages" id="chat-messages">
             <div class="message system">
                 <div class="message-content">
-                    ChÃ o báº¡n! ðŸ‘‹ TÃ´i lÃ  trá»£ lÃ½ AI cá»§a cá»­a hÃ ng. HÃ£y há»i tÃ´i báº¥t cá»© Ä‘iá»u gÃ¬ vá» sáº£n pháº©m
-                    hoáº·c dá»‹ch vá»¥ cá»§a chÃºng tÃ´i!
+                    Chao ban! Toi la tro ly AI cua cua hang. Hay hoi toi bat cu dieu gi ve san pham
+                    hoac dich vu cua chung toi!
                 </div>
             </div>
         </div>
@@ -298,10 +298,10 @@
                 type="text"
                 class="chat-input"
                 id="chat-input"
-                placeholder="GÃµ cÃ¢u há»i cá»§a báº¡n..."
+                placeholder="Go cau hoi cua ban..."
                 autocomplete="off"
             />
-            <button class="chat-send-btn" id="chat-send-btn">âž¤</button>
+            <button class="chat-send-btn" id="chat-send-btn" aria-label="Gui tin nhan"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
         </div>
     </div>
 </div>
@@ -309,6 +309,7 @@
 <script>
 class AIChatWidget {
     constructor() {
+        this.chatApiUrl = '/api/chat/';
         this.chatButton = document.getElementById('chat-bubble-btn');
         this.chatWindow = document.getElementById('chat-window');
         this.closeBtn = document.getElementById('close-chat-btn');
@@ -338,35 +339,31 @@ class AIChatWidget {
     }
     
     getCustomerId() {
-        // Láº¥y customer ID tá»«:
-        // 1. localStorage (náº¿u Ä‘Ã£ lÆ°u)
-        // 2. Data attribute tá»« HTML element
-        // 3. Query param tá»« URL
-        // 4. Cookie
-        
+        const customerInfo = JSON.parse(localStorage.getItem('customer_info') || '{}');
+        if (customerInfo && customerInfo.id) {
+            return String(customerInfo.id);
+        }
+
+        // Only allow numeric IDs; guests are mapped to 0 to keep backend stable.
         const stored = localStorage.getItem('customer_id');
-        if (stored) return stored;
-        
+        if (stored && /^\d+$/.test(stored)) return stored;
+
         const urlParams = new URLSearchParams(window.location.search);
         const fromUrl = urlParams.get('customer_id');
-        if (fromUrl) return fromUrl;
-        
+        if (fromUrl && /^\d+$/.test(fromUrl)) return fromUrl;
+
         const elem = document.querySelector('[data-customer-id]');
-        if (elem) return elem.dataset.customerId;
-        
-        // Fallback: generate temporary ID
-        let tempId = sessionStorage.getItem('temp_customer_id');
-        if (!tempId) {
-            tempId = 'guest_' + Date.now();
-            sessionStorage.setItem('temp_customer_id', tempId);
+        if (elem && /^\d+$/.test(String(elem.dataset.customerId || ''))) {
+            return String(elem.dataset.customerId);
         }
-        return tempId;
+
+        return '0';
     }
     
     checkAuthentication() {
-        if (this.customerId.startsWith('guest_')) {
+        if (this.customerId === '0') {
             this.showSystemMessage(
-                'â„¹ï¸ Báº¡n chÆ°a Ä‘Äƒng nháº­p. Má»™t sá»‘ tÃ­nh nÄƒng cÃ¡ nhÃ¢n hÃ³a cÃ³ thá»ƒ khÃ´ng kháº£ dá»¥ng.'
+                'Ban chua dang nhap. Mot so tinh nang ca nhan hoa co the khong kha dung.'
             );
         }
     }
@@ -423,15 +420,16 @@ class AIChatWidget {
         recEl.className = 'message assistant';
         
         let html = '<div class="message-content"><div class="recommendations">';
-        html += '<div class="recommendations-title">ðŸ’¡ Sáº£n pháº©m Ä‘Æ°á»£c Ä‘á» xuáº¥t:</div>';
+        html += '<div class="recommendations-title">San pham duoc de xuat:</div>';
         
         for (const product of products.slice(0, 3)) {
-            const name = product.name || `${product.service_type.capitalize()} #${product.product_id}`;
+            const productType = product.service_type || product.product_type || 'product';
+            const name = product.name || `${productType} #${product.product_id}`;
             const score = (product.score * 100).toFixed(0);
             
             html += `<div class="recommendation-item">`;
             html += `<div class="recommendation-name">${this.escapeHtml(name)}</div>`;
-            html += `<div class="recommendation-info">Score: ${score}% | Loáº¡i: ${product.service_type}</div>`;
+            html += `<div class="recommendation-info">Score: ${score}% | Loại: ${productType}</div>`;
             html += `</div>`;
         }
         
@@ -486,40 +484,56 @@ class AIChatWidget {
         this.showLoading();
         
         try {
-            const response = await fetch('/api/ai/chat/', {
+            let customerId = Number.parseInt(this.customerId, 10);
+            if (!Number.isFinite(customerId) || customerId < 0) {
+                customerId = 0;
+            }
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
+            const response = await fetch(this.chatApiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                signal: controller.signal,
                 body: JSON.stringify({
-                    customer_id: parseInt(this.customerId.replace('guest_', '')) || 0,
+                    customer_id: customerId,
                     message: message,
                     conversation_id: this.conversationId
                 })
             });
+            clearTimeout(timeoutId);
             
             const data = await response.json();
             
             this.hideLoading();
             
-            if (data.success || data.response) {
+            if (!response.ok) {
+                console.error('Chat API error:', response.status, data);
+                this.showSystemMessage('Loi ' + response.status + ': ' + (data.error || data.message || 'Vui long thu lai'));
+            } else if (typeof data.reply === 'string') {
                 // Save conversation ID
                 this.conversationId = data.conversation_id;
                 
                 // Show response
-                this.showAssistantMessage(data.response);
+                this.showAssistantMessage(data.reply);
                 
                 // Show recommendations if available
                 if (data.recommended_products && data.recommended_products.length > 0) {
                     this.showRecommendations(data.recommended_products);
                 }
             } else {
-                this.showSystemMessage('âŒ CÃ³ lá»—i xáº£y ra: ' + (data.message || 'Vui lÃ²ng thá»­ láº¡i'));
+                console.warn('Unexpected response format:', data);
+                this.showSystemMessage('Co loi xay ra: ' + (data.message || 'Vui long thu lai'));
             }
         } catch (error) {
             this.hideLoading();
-            console.error('Chat error:', error);
-            this.showSystemMessage('âŒ Káº¿t ná»‘i tháº¥t báº¡i. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i internet.');
+            console.error('Chat fetch error:', error);
+            const errMsg = error && error.name === 'AbortError'
+                ? 'Yeu cau chat bi timeout. Vui long thu lai sau it giay.'
+                : ('Ket noi that bai: ' + (error.message || 'Vui long kiem tra ket noi internet.'));
+            this.showSystemMessage(errMsg);
         } finally {
             this.isLoading = false;
             this.sendBtn.disabled = false;

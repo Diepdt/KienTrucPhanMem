@@ -291,7 +291,7 @@
                 section.style.display = 'block';
                 list.innerHTML = '<div class="col-12"><div class="alert alert-info mb-0">Đang tải gợi ý AI...</div></div>';
 
-                const recRes = await fetch(`/api/recommendations/${info.id}/cached/`, {
+                const recRes = await fetch(`/api/recommendations/user/${info.id}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 const recData = await recRes.json().catch(() => ({}));
@@ -412,6 +412,23 @@
                 // Update header cart count
                 if (typeof clientUpdateHeaderState === 'function') {
                     clientUpdateHeaderState();
+                }
+
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const cid = Number(info.id || 0);
+                if (cid > 0) {
+                    fetch('/api/events/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            customer_id: cid,
+                            event_type: 'add_to_cart',
+                            service_type: 'gateway-home',
+                            product_id: Number(productId),
+                            query_text: '',
+                            payload: { page: 'home' },
+                        }),
+                    }).catch(() => {});
                 }
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);

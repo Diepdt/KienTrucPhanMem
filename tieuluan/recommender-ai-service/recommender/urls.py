@@ -2,19 +2,15 @@ from django.urls import path
 from .views import (
     AIChatView,
     AIEventIngestView,
+    AIEventIngestAndRecommendView,
     AIHealthView,
-    AIKnowledgeRebuildView,
-    CachedRecommendationsView,
-    RecommendationsView,
+    GraphRecommendationsView,
 )
 
 urlpatterns = [
-    path("ai/health/", AIHealthView.as_view(), name="ai-health"),
-    path("ai/events/", AIEventIngestView.as_view(), name="ai-event-ingest"),
-    path("ai/kb/rebuild/", AIKnowledgeRebuildView.as_view(), name="ai-kb-rebuild"),
-    path("ai/recommendations/<int:customer_id>/", RecommendationsView.as_view(), name="ai-recommendations"),
-    path("ai/recommendations/<int:customer_id>/cached/", CachedRecommendationsView.as_view(), name="ai-recommendations-cached"),
-    path("ai/chat/", AIChatView.as_view(), name="ai-chat"),
-    path("recommendations/<int:customer_id>/", RecommendationsView.as_view(), name="recommendations"),
-    path("recommendations/<int:customer_id>/cached/", CachedRecommendationsView.as_view(), name="recommendations-cached"),
+    path("health/", AIHealthView.as_view(), name="ai-health"),
+    path("events/", AIEventIngestView.as_view(), name="ai-event-ingest"),
+    path("events/recommend/", AIEventIngestAndRecommendView.as_view(), name="ai-event-ingest-recommend"),
+    path("recommendations/user/<int:customer_id>/", GraphRecommendationsView.as_view(), name="api-recommendations-user"),
+    path("chat/", AIChatView.as_view(), name="ai-chat"),
 ]

@@ -130,6 +130,37 @@
             return item.product_id;
         }
 
+        function getCustomerIdForAI() {
+            try {
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const id = Number(info.id || 0);
+                if (Number.isFinite(id) && id > 0) return id;
+            } catch {}
+            return 0;
+        }
+
+        async function postAIEvent(eventType, productId = null, payloadExtra = {}) {
+            const customerId = getCustomerIdForAI();
+            if (!customerId) return;
+            try {
+                await fetch('/api/events/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        event_type: eventType,
+                        service_type: 'gateway-cart',
+                        product_id: productId,
+                        query_text: '',
+                        payload: {
+                            page: 'cart',
+                            ...payloadExtra,
+                        },
+                    }),
+                });
+            } catch {}
+        }
+
         function renderEmptyCart() {
             return `
                 <div class="row justify-content-center">
@@ -387,6 +418,9 @@
                     clientUpdateHeaderState();
                 }
 
+                const updatedItem = (cartData?.items || []).find((it) => Number(it.id) === Number(itemId));
+                postAIEvent('update_quantity', updatedItem ? Number(updatedItem.product_id) : null, { cart_item_id: itemId, quantity: Number(newQuantity) });
+
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);
             }
@@ -397,6 +431,8 @@
 
             const token = localStorage.getItem('customer_token');
             if (!token) return;
+            const removedItem = (cartData?.items || []).find((it) => Number(it.id) === Number(itemId));
+            const removedProductId = removedItem ? Number(removedItem.product_id) : null;
 
             try {
                 const res = await fetch(`/api/carts/items/${itemId}/remove/`, {
@@ -419,6 +455,8 @@
                 if (typeof clientUpdateHeaderState === 'function') {
                     clientUpdateHeaderState();
                 }
+
+                postAIEvent('remove_cart', removedProductId, { cart_item_id: itemId });
 
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);

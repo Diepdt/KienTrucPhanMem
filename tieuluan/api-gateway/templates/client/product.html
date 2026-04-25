@@ -44,6 +44,55 @@
         .type-tag.active {
             box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
         }
+        .search-wrap {
+            position: relative;
+        }
+        .search-suggestion-box {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            z-index: 1200;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .search-suggestion-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            border: 0;
+            background: transparent;
+            text-align: left;
+            padding: 0.65rem 0.85rem;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+        }
+        .search-suggestion-item:last-child {
+            border-bottom: 0;
+        }
+        .search-suggestion-item:hover {
+            background: #f8fafc;
+        }
+        .search-suggestion-meta {
+            color: #64748b;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .ai-recs-section {
+            display: none;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -60,15 +109,18 @@
         <div class="filter-section">
             <div class="row g-3">
                 <div class="col-md-8">
-                    <div class="input-group">
+                    <div class="search-wrap">
+                        <div class="input-group">
                         <input type="text" class="form-control" id="search-query" placeholder="Tìm kiếm theo tên sản phẩm, tác giả, thương hiệu...">
-                        <button class="btn btn-primary" onclick="searchProducts()">
+                        <button class="btn btn-primary" onclick="searchProducts(true)">
                             <i class="fa fa-search me-2"></i>Tìm kiếm
                         </button>
+                        </div>
+                        <div id="search-ai-suggestions" class="search-suggestion-box"></div>
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select" id="product-type-filter" onchange="searchProducts()">
+                    <select class="form-select" id="product-type-filter" onchange="searchProducts(false)">
                         <option value="all">Tất cả</option>
                     </select>
                 </div>
@@ -82,6 +134,14 @@
                 </div>
             </div>
         </div>
+
+        <section id="ai-recs-section" class="ai-recs-section">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h2 class="h6 mb-0"><i class="fa fa-lightbulb text-warning me-2"></i>Gợi ý AI theo hành vi gần đây</h2>
+                <span id="ai-recs-trigger" class="badge text-bg-light border">Nguồn: KB_Graph</span>
+            </div>
+            <div id="ai-recs-list" class="row g-3"></div>
+        </section>
 
         <div class="row g-4" id="product-list"></div>
 
@@ -102,7 +162,136 @@
             allProducts: [],
             filteredProducts: [],
             currentPage: 1,
+            aiSuggestedProducts: [],
         };
+
+        function getCustomerIdForAI() {
+            try {
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const id = Number(info.id || 0);
+                if (Number.isFinite(id) && id > 0) return id;
+            } catch {}
+            return 0;
+        }
+
+        function hideSearchSuggestions() {
+            const box = document.getElementById('search-ai-suggestions');
+            if (box) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+            }
+        }
+
+        function showSearchSuggestions(products) {
+            const box = document.getElementById('search-ai-suggestions');
+            if (!box) return;
+
+            if (!Array.isArray(products) || !products.length) {
+                hideSearchSuggestions();
+                return;
+            }
+
+            box.innerHTML = products.slice(0, 6).map((p) => `
+                <button class="search-suggestion-item" type="button" onclick="applySuggestion('${String(p.title || '').replace(/'/g, "\\'")}')">
+                    <span>${p.title}</span>
+                    <span class="search-suggestion-meta">${typeLabel(p.product_type)}</span>
+                </button>
+            `).join('');
+            box.style.display = 'block';
+        }
+
+        function applySuggestion(text) {
+            const input = document.getElementById('search-query');
+            input.value = text;
+            hideSearchSuggestions();
+            searchProducts(true);
+        }
+
+        function renderAiRecsSection(products, triggerText) {
+            const section = document.getElementById('ai-recs-section');
+            const list = document.getElementById('ai-recs-list');
+            const trigger = document.getElementById('ai-recs-trigger');
+            if (!section || !list || !trigger) return;
+
+            if (!Array.isArray(products) || !products.length) {
+                section.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+
+            trigger.textContent = triggerText || 'Nguồn: KB_Graph';
+            list.innerHTML = products.slice(0, 6).map((p) => {
+                const cover = p.image_url || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
+                return `
+                    <div class="col-sm-6 col-lg-4 col-xl-3">
+                        <div class="product-card h-100">
+                            <img src="${cover}" class="product-image" alt="${p.title}">
+                            <div class="p-3 d-flex flex-column h-100">
+                                <h6 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?type=${p.product_type}&id=${p.product_id}">${p.title}</a></h6>
+                                <p class="text-muted small mb-2">${typeLabel(p.product_type)}</p>
+                                <p class="text-dark fw-bold mb-2">${formatPrice(p.price)}</p>
+                                <button class="btn btn-outline-primary btn-sm mt-auto" onclick="addToCart('${p.product_type}', ${p.product_id})">Thêm vào giỏ</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            section.style.display = 'block';
+        }
+
+        async function getGraphRecommendations(topK = 8) {
+            const customerId = getCustomerIdForAI();
+            if (!customerId) return [];
+
+            try {
+                const res = await fetch(`/api/recommendations/user/${customerId}/?top_k=${topK}`);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !Array.isArray(data.recommendations)) return [];
+                return data.recommendations;
+            } catch {
+                return [];
+            }
+        }
+
+        function mapRecsToProducts(recs) {
+            const byId = new Map(state.allProducts.map((p) => [Number(p.product_id), p]));
+            const out = [];
+            for (const r of recs) {
+                const p = byId.get(Number(r.product_id));
+                if (p) out.push(p);
+            }
+            return out;
+        }
+
+        async function postAIEventRecommend(eventType, productId = null, queryText = '') {
+            const customerId = getCustomerIdForAI();
+            if (!customerId) return [];
+
+            const payload = {
+                customer_id: customerId,
+                event_type: eventType,
+                service_type: 'gateway-client',
+                product_id: productId,
+                query_text: queryText || '',
+                payload: {
+                    page: 'product',
+                    trigger: eventType,
+                },
+            };
+
+            try {
+                const res = await fetch('/api/events/recommend/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !Array.isArray(data.recommendations)) return [];
+                return data.recommendations;
+            } catch {
+                return [];
+            }
+        }
 
         const typeLabels = {
             all: 'Tất cả',
@@ -330,17 +519,29 @@
             searchProducts();
         }
 
-        function searchProducts() {
+        async function searchProducts(trackEvent = false) {
             state.currentPage = 1;
             applyFilters();
             renderTypeTags();
-            renderPage();
+            await renderPage();
+
+            if (trackEvent) {
+                const q = document.getElementById('search-query').value.trim();
+                const recs = await postAIEventRecommend('search', null, q);
+                const mapped = mapRecsToProducts(recs);
+                if (mapped.length) {
+                    state.aiSuggestedProducts = mapped;
+                    renderAiRecsSection(mapped, 'Kích hoạt bởi: Search');
+                    showSearchSuggestions(mapped);
+                }
+            }
         }
 
         function resetSearch() {
             document.getElementById('search-query').value = '';
             document.getElementById('product-type-filter').value = 'all';
-            searchProducts();
+            hideSearchSuggestions();
+            searchProducts(false);
         }
 
         async function loadProducts() {
@@ -359,6 +560,13 @@
                 applyFilters();
                 renderTypeTags();
                 await renderPage();
+
+                // Prefetch personalized suggestions when user enters search box.
+                const graphRecs = await getGraphRecommendations(8);
+                const mapped = mapRecsToProducts(graphRecs);
+                if (mapped.length) {
+                    state.aiSuggestedProducts = mapped;
+                }
             } catch (error) {
                 list.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
                 document.getElementById('product-summary').textContent = '';
@@ -409,6 +617,14 @@
                 if (typeof clientUpdateHeaderState === 'function') {
                     clientUpdateHeaderState();
                 }
+
+                const recs = await postAIEventRecommend('add_to_cart', productId, '');
+                const mapped = mapRecsToProducts(recs);
+                if (mapped.length) {
+                    state.aiSuggestedProducts = mapped;
+                    renderAiRecsSection(mapped, 'Kích hoạt bởi: Add to cart');
+                    showSearchSuggestions(mapped);
+                }
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);
             }
@@ -419,7 +635,33 @@
             if (searchInput) {
                 searchInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
-                        searchProducts();
+                        searchProducts(true);
+                    }
+                });
+
+                searchInput.addEventListener('focus', function() {
+                    if (state.aiSuggestedProducts.length) {
+                        showSearchSuggestions(state.aiSuggestedProducts);
+                    }
+                });
+
+                searchInput.addEventListener('input', function() {
+                    const q = searchInput.value.trim().toLowerCase();
+                    if (!q) {
+                        showSearchSuggestions(state.aiSuggestedProducts);
+                        return;
+                    }
+                    const filtered = state.aiSuggestedProducts.filter((p) =>
+                        String(p.title || '').toLowerCase().includes(q) ||
+                        String(p.subtitle || '').toLowerCase().includes(q)
+                    );
+                    showSearchSuggestions(filtered);
+                });
+
+                document.addEventListener('click', function(e) {
+                    const wrap = document.querySelector('.search-wrap');
+                    if (wrap && !wrap.contains(e.target)) {
+                        hideSearchSuggestions();
                     }
                 });
             }
