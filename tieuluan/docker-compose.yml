@@ -3,13 +3,22 @@ name: tieuluan_v2
 services:
 
   # ============================================================
+  # Shared Python base image for all Django microservices
+  # ============================================================
+  python-base:
+    build:
+      context: .
+      dockerfile: docker/base/Dockerfile
+    image: tieuluan-python-base:3.11
+    command: ["sh", "-c", "echo python-base ready"]
+    restart: "no"
+
+  # ============================================================
   # MongoDB - Luu product attributes linh hoat
   # ============================================================
   mongodb:
     image: mongo:7
     restart: always
-    ports:
-      - "47017:27017"
     volumes:
       - mongodb_data:/data/db
 
@@ -22,8 +31,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_ROOT_HOST: "%"
-    ports:
-      - "43336:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
@@ -34,13 +41,22 @@ services:
       retries: 10
 
   # ============================================================
+  # Neo4j - KB Graph backend for recommender task b/c/d
+  # ============================================================
+  neo4j:
+    image: neo4j:5.22
+    restart: always
+    environment:
+      NEO4J_AUTH: "neo4j/12345678"
+    volumes:
+      - neo4j_data:/data
+
+  # ============================================================
   # staff-service (port 8001)
   # ============================================================
   staff-service:
     build: ./staff-service
     restart: always
-    ports:
-      - "9001:8001"
     environment:
       DB_NAME: tieuluan_staff
       DB_USER: root
@@ -49,6 +65,8 @@ services:
       DB_PORT: "3306"
       SECRET_KEY: "staff-secret-key-production"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
 
@@ -58,8 +76,6 @@ services:
   manager-service:
     build: ./manager-service
     restart: always
-    ports:
-      - "9002:8002"
     environment:
       DB_NAME: tieuluan_manager
       DB_USER: root
@@ -69,6 +85,8 @@ services:
       SECRET_KEY: "manager-secret-key-production"
       STAFF_SERVICE_URL: "http://staff-service:8001"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       staff-service:
@@ -80,8 +98,6 @@ services:
   customer-service:
     build: ./customer-service
     restart: always
-    ports:
-      - "9003:8003"
     environment:
       DB_NAME: tieuluan_customer
       DB_USER: root
@@ -91,6 +107,8 @@ services:
       SECRET_KEY: "customer-secret-key-production"
       CART_SERVICE_URL: "http://cart-service:8006"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
 
@@ -100,8 +118,6 @@ services:
   product-service:
     build: ./product-service
     restart: always
-    ports:
-      - "9004:8004"
     environment:
       DB_NAME: tieuluan_catalog
       DB_USER: root
@@ -113,6 +129,8 @@ services:
       MONGO_ATTRIBUTES_COLLECTION: "product_attributes"
       SECRET_KEY: "catalog-secret-key-production"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       mongodb:
@@ -124,8 +142,6 @@ services:
   cart-service:
     build: ./cart-service
     restart: always
-    ports:
-      - "9006:8006"
     environment:
       DB_NAME: tieuluan_cart
       DB_USER: root
@@ -136,6 +152,8 @@ services:
       PRODUCT_SERVICE_URL: "http://product-service:8004"
       CUSTOMER_SERVICE_URL: "http://customer-service:8003"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       product-service:
@@ -149,8 +167,6 @@ services:
   order-service:
     build: ./order-service
     restart: always
-    ports:
-      - "9007:8007"
     environment:
       DB_NAME: tieuluan_order
       DB_USER: root
@@ -165,6 +181,8 @@ services:
       PAY_SERVICE_URL: "http://pay-service:8009"
       SHIP_SERVICE_URL: "http://ship-service:8008"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       customer-service:
@@ -179,8 +197,6 @@ services:
   ship-service:
     build: ./ship-service
     restart: always
-    ports:
-      - "9008:8008"
     environment:
       DB_NAME: tieuluan_ship
       DB_USER: root
@@ -189,6 +205,8 @@ services:
       DB_PORT: "3306"
       SECRET_KEY: "ship-secret-key-production"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
 
@@ -198,8 +216,6 @@ services:
   pay-service:
     build: ./pay-service
     restart: always
-    ports:
-      - "9009:8009"
     environment:
       DB_NAME: tieuluan_pay
       DB_USER: root
@@ -208,6 +224,8 @@ services:
       DB_PORT: "3306"
       SECRET_KEY: "pay-secret-key-production"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
 
@@ -217,8 +235,6 @@ services:
   comment-rate-service:
     build: ./comment-rate-service
     restart: always
-    ports:
-      - "9010:8010"
     environment:
       DB_NAME: tieuluan_comment
       DB_USER: root
@@ -230,6 +246,8 @@ services:
       ORDER_SERVICE_URL: "http://order-service:8007"
       MANAGER_SERVICE_URL: "http://manager-service:8002"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       customer-service:
@@ -239,12 +257,8 @@ services:
   # recommender-ai-service (port 8011)
   # ============================================================
   recommender-ai-service:
-    profiles:
-      - skip
     build: ./recommender-ai-service
     restart: always
-    ports:
-      - "9011:8011"
     environment:
       DB_NAME: tieuluan_recommender
       DB_USER: root
@@ -255,13 +269,24 @@ services:
       COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
       ORDER_SERVICE_URL: "http://order-service:8007"
       CUSTOMER_SERVICE_URL: "http://customer-service:8003"
+      PRODUCT_SERVICE_URL: "http://product-service:8004"
+      NEO4J_URI: "bolt://neo4j:7687"
+      NEO4J_USER: "neo4j"
+      NEO4J_PASSWORD: "12345678"
+      LSTM_MODEL_PATH: "/app/models/lstm/model.pt"
     depends_on:
+      python-base:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       comment-rate-service:
         condition: service_started
       order-service:
         condition: service_started
+      neo4j:
+        condition: service_started
+    volumes:
+      - ./models/lstm:/app/models/lstm
 
   # ============================================================
   # api-gateway (port 8000) - Điểm vào duy nhất cho client
@@ -289,16 +314,30 @@ services:
       COMMENT_SERVICE_URL: "http://comment-rate-service:8010"
       RECOMMENDER_SERVICE_URL: "http://recommender-ai-service:8011"
     depends_on:
-      - staff-service
-      - manager-service
-      - customer-service
-      - product-service
-      - cart-service
-      - order-service
-      - ship-service
-      - pay-service
-      - comment-rate-service
+      python-base:
+        condition: service_completed_successfully
+      staff-service:
+        condition: service_started
+      manager-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      ship-service:
+        condition: service_started
+      pay-service:
+        condition: service_started
+      comment-rate-service:
+        condition: service_started
+      recommender-ai-service:
+        condition: service_started
 
 volumes:
   mysql_data:
   mongodb_data:
+  neo4j_data:

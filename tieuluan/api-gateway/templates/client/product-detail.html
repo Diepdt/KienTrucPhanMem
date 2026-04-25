@@ -141,6 +141,39 @@
             };
         }
 
+        function getCustomerIdForAI() {
+            try {
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const id = Number(info.id || 0);
+                if (Number.isFinite(id) && id > 0) return id;
+            } catch {}
+            return 0;
+        }
+
+        async function postAIEvent(eventType, productId = null, queryText = '') {
+            const customerId = getCustomerIdForAI();
+            if (!customerId) return;
+
+            const payload = {
+                customer_id: customerId,
+                event_type: eventType,
+                service_type: 'gateway-product-detail',
+                product_id: productId,
+                query_text: queryText,
+                payload: {
+                    page: 'product-detail'
+                }
+            };
+
+            try {
+                await fetch('/api/events/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } catch {}
+        }
+
         function normalizeProduct(payload) {
             const type = payload.product_type || 'general';
             const attrs = payload.attributes || {};
@@ -205,11 +238,8 @@
                 let defaultImage = 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop';
                 if (product.product_type === 'cloth') defaultImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=900&auto=format&fit=crop';
 
-                let typeBadge = '';
-                if (product.product_type === 'book') typeBadge = '<span class="badge text-bg-primary">Book</span>';
-                else if (product.product_type === 'cloth') typeBadge = '<span class="badge text-bg-success">Cloth</span>';
-                else if (product.product_type === 'laptop') typeBadge = '<span class="badge text-bg-info">Laptop</span>';
-                else if (product.product_type === 'mobile') typeBadge = '<span class="badge text-bg-warning">Mobile</span>';
+                const typeLabel = String(product.product_type || 'general').replaceAll('_', ' ');
+                const typeBadge = `<span class="badge text-bg-secondary text-uppercase">${typeLabel}</span>`;
 
                 // Restore the original HTML structure and populate with data
                 container.innerHTML = `
@@ -263,6 +293,10 @@
                 currentProductId = product.product_id;
                 currentProductType = product.product_type;
                 document.title = `EcomMart - ${product.title}`;
+
+                // Log both click and view to capture detail-page interactions.
+                postAIEvent('click', currentProductId);
+                postAIEvent('view', currentProductId);
 
                 // Show review section for all product types now
                 reviewSection.style.display = 'block';
@@ -363,6 +397,8 @@
                 if (typeof clientUpdateHeaderState === 'function') {
                     clientUpdateHeaderState();
                 }
+
+                postAIEvent('add_to_cart', currentProductId);
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);
             } finally {

@@ -249,11 +249,48 @@
                     alert(data.error || 'Đánh giá thất bại.');
                     return;
                 }
+
+                postAIEvent('rate', Number(productId), {
+                    product_type: productType,
+                    rating: Number(rating),
+                });
+
                 alert('Đánh giá thành công.');
                 await loadOrderDetail();
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);
             }
+        }
+
+        function getCustomerIdForAI() {
+            try {
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const id = Number(info.id || 0);
+                if (Number.isFinite(id) && id > 0) return id;
+            } catch {}
+            return 0;
+        }
+
+        async function postAIEvent(eventType, productId = null, payloadExtra = {}) {
+            const customerId = getCustomerIdForAI();
+            if (!customerId) return;
+            try {
+                await fetch('/api/events/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        event_type: eventType,
+                        service_type: 'gateway-order-detail',
+                        product_id: productId,
+                        query_text: '',
+                        payload: {
+                            page: 'order-detail',
+                            ...payloadExtra,
+                        },
+                    }),
+                });
+            } catch {}
         }
 
         async function loadOrderDetail() {

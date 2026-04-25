@@ -37,6 +37,7 @@ DATABASES = {
 COMMENT_SERVICE_URL = os.environ.get('COMMENT_SERVICE_URL', 'http://comment-rate-service:8010')
 ORDER_SERVICE_URL = os.environ.get('ORDER_SERVICE_URL', 'http://order-service:8007')
 CUSTOMER_SERVICE_URL = os.environ.get('CUSTOMER_SERVICE_URL', 'http://customer-service:8003')
+LSTM_MODEL_PATH = os.environ.get('LSTM_MODEL_PATH', '/app/models/lstm/model.pt')
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': [], 'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny']}
 CORS_ALLOW_ALL_ORIGINS = True
 LANGUAGE_CODE = 'vi-vn'

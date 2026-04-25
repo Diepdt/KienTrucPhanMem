@@ -138,7 +138,7 @@
                 </div>
             </div> -->
 
-            <div class="row g-4" id="book-list" style="display: none;"></div>
+            <div class="row g-4" id="book-list"></div>
         </section>
 
         <section class="mb-4" id="ai-recommendations-section" style="display:none;">
@@ -174,21 +174,106 @@
             return Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('');
         }
 
-        async function loadFeaturedRatings() {
-            try {
-                const res = await fetch('/api/reviews/avg-ratings/?product_type=book&product_ids=1,2,3,4');
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok || typeof data !== 'object') return;
+        function normalizeFeaturedProduct(item) {
+            const attrs = item.attributes || item.detail_data || {};
+            const subtitleParts = [attrs.brand, attrs.author, attrs.model].filter(Boolean);
+            return {
+                id: item.id,
+                product_type: item.product_type || 'general',
+                name: item.name || 'San pham',
+                subtitle: subtitleParts.join(' | ') || 'N/A',
+                image_url: item.image_url || item.image || 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=900&auto=format&fit=crop',
+                price: item.price || item.sale_price || item.regular_price || 0,
+                stock: Number(item.stock || item.quantity || 0),
+                sold: Number(item.sold || 0),
+            };
+        }
 
-                [1, 2, 3, 4].forEach((id) => {
-                    const item = data[String(id)] || { avg_rating: 0, count: 0 };
-                    const starsEl = document.getElementById(`home-rating-stars-${id}`);
-                    const countEl = document.getElementById(`home-rating-count-${id}`);
-                    if (starsEl) starsEl.textContent = renderStars(item.avg_rating);
-                    if (countEl) countEl.textContent = `(${item.count || 0})`;
-                });
+        function renderTypeBadge(productType) {
+            if (productType === 'book') return '<span class="badge text-bg-primary">Book</span>';
+            if (productType === 'cloth') return '<span class="badge text-bg-success">Cloth</span>';
+            if (productType === 'laptop') return '<span class="badge text-bg-info">Laptop</span>';
+            if (productType === 'mobile') return '<span class="badge text-bg-warning">Mobile</span>';
+            return '<span class="badge text-bg-secondary">General</span>';
+        }
+
+        async function fetchRatingMap(productType, productIds) {
+            if (!Array.isArray(productIds) || !productIds.length) return {};
+            try {
+                const params = new URLSearchParams({ product_type: productType, product_ids: productIds.join(',') });
+                const response = await fetch(`/api/reviews/avg-ratings/?${params.toString()}`);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || typeof data !== 'object') return {};
+                return data;
             } catch {
-                // Ignore rating load errors for home static cards
+                return {};
+            }
+        }
+
+        async function loadFeaturedProducts() {
+            const container = document.getElementById('book-list');
+            container.innerHTML = '<div class="col-12"><div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div></div>';
+
+            try {
+                const response = await fetch('/api/products/');
+                const raw = await response.json().catch(() => []);
+                if (!response.ok || !Array.isArray(raw)) {
+                    throw new Error('Khong the tai san pham noi bat.');
+                }
+
+                const products = raw
+                    .map(normalizeFeaturedProduct)
+                    .sort((a, b) => {
+                        if (b.sold !== a.sold) return b.sold - a.sold;
+                        return Number(b.id) - Number(a.id);
+                    })
+                    .slice(0, 8);
+
+                if (!products.length) {
+                    container.innerHTML = '<div class="col-12"><div class="alert alert-warning">Chua co san pham nao.</div></div>';
+                    return;
+                }
+
+                const ratingMapByType = {};
+                const productTypes = [...new Set(products.map((p) => p.product_type).filter(Boolean))];
+                for (const type of productTypes) {
+                    const ids = products.filter((p) => p.product_type === type).map((p) => p.id);
+                    if (ids.length) {
+                        ratingMapByType[type] = await fetchRatingMap(type, ids);
+                    }
+                }
+
+                container.innerHTML = products.map((product) => {
+                    const ratingMap = ratingMapByType[product.product_type] || {};
+                    const rating = ratingMap[String(product.id)] || { avg_rating: 0, count: 0 };
+                    return `
+                        <div class="col-md-6 col-lg-4 col-xl-3">
+                            <div class="product-card h-100">
+                                <img src="${product.image_url}" class="product-image" alt="${escapeHtml(product.name)}">
+                                <div class="p-3 d-flex flex-column h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        ${renderTypeBadge(product.product_type)}
+                                        <small class="text-muted">Kho: ${product.stock}</small>
+                                    </div>
+                                    <h6 class="mb-2"><a class="text-decoration-none" href="/customer/product-detail/?type=${product.product_type}&id=${product.id}">${escapeHtml(product.name)}</a></h6>
+                                    <p class="text-muted mb-2"><small><i class="fa fa-tag me-1"></i>${escapeHtml(product.subtitle)}</small></p>
+                                    <p class="small mb-2"><span class="text-warning">${renderStars(rating.avg_rating)}</span> <span class="text-muted">(${rating.count || 0})</span></p>
+                                    <div class="product-actions d-grid gap-2">
+                                        <p class="text-dark fs-6 fw-bold mb-1">${formatPrice(product.price)}</p>
+                                        <a href="/customer/product-detail/?type=${product.product_type}&id=${product.id}" class="btn btn-outline-secondary">
+                                            <i class="fa fa-eye me-2"></i>Xem chi tiết
+                                        </a>
+                                        <button class="btn btn-primary w-100" onclick="addToCart(${product.id}, '${product.product_type}')" ${product.stock <= 0 ? 'disabled' : ''}>
+                                            <i class="fa fa-shopping-bag me-2"></i>${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Het hang'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                container.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
             }
         }
 
@@ -206,7 +291,7 @@
                 section.style.display = 'block';
                 list.innerHTML = '<div class="col-12"><div class="alert alert-info mb-0">Đang tải gợi ý AI...</div></div>';
 
-                const recRes = await fetch(`/api/recommendations/${info.id}/cached/`, {
+                const recRes = await fetch(`/api/recommendations/user/${info.id}/`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 const recData = await recRes.json().catch(() => ({}));
@@ -328,6 +413,23 @@
                 if (typeof clientUpdateHeaderState === 'function') {
                     clientUpdateHeaderState();
                 }
+
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const cid = Number(info.id || 0);
+                if (cid > 0) {
+                    fetch('/api/events/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            customer_id: cid,
+                            event_type: 'add_to_cart',
+                            service_type: 'gateway-home',
+                            product_id: Number(productId),
+                            query_text: '',
+                            payload: { page: 'home' },
+                        }),
+                    }).catch(() => {});
+                }
             } catch (error) {
                 alert('Lỗi kết nối: ' + error.message);
             }
@@ -337,7 +439,7 @@
             if (typeof clientUpdateHeaderState === 'function') {
                 clientUpdateHeaderState();
             }
-            loadFeaturedRatings();
+            loadFeaturedProducts();
             loadAiRecommendations();
         });
     </script>

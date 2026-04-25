@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 import requests as http_requests
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,8 @@ ROUTE_TABLE = [
     ('payment/', django_settings.PAY_SERVICE_URL),
     ('reviews/', django_settings.COMMENT_SERVICE_URL),
     ('recommendations/', django_settings.RECOMMENDER_SERVICE_URL),
-    ('ai/', django_settings.RECOMMENDER_SERVICE_URL),
+    ('chat/', django_settings.RECOMMENDER_SERVICE_URL),
+    ('events/', django_settings.RECOMMENDER_SERVICE_URL),
 ]
 
 
@@ -33,6 +35,52 @@ def resolve_service(path):
         if path.startswith(prefix):
             return service_url
     return None
+
+
+def standard_response(success, data=None, message='', code=200):
+    return Response({
+        'success': bool(success),
+        'data': data,
+        'message': message,
+    }, status=code)
+
+
+def is_blocked_path(path):
+    normalized = '/' + str(path or '').strip('/') + '/'
+    if '/internal/' in normalized:
+        return True
+    if normalized.startswith('/admin/'):
+        return True
+    return False
+
+
+def build_upstream_response(resp):
+    """Return upstream response as-is to preserve backward compatibility."""
+    content_type = resp.headers.get('Content-Type', 'application/octet-stream')
+    django_response = HttpResponse(
+        content=resp.content,
+        status=resp.status_code,
+        content_type=content_type,
+    )
+
+    # Forward most upstream headers except hop-by-hop ones.
+    skip_headers = {
+        'connection',
+        'keep-alive',
+        'proxy-authenticate',
+        'proxy-authorization',
+        'te',
+        'trailers',
+        'transfer-encoding',
+        'upgrade',
+        'content-length',
+    }
+    for header, value in resp.headers.items():
+        if header.lower() in skip_headers:
+            continue
+        django_response[header] = value
+
+    return django_response
 
 
 class ProxyView(APIView):
@@ -53,18 +101,27 @@ class ProxyView(APIView):
     - /api/payment/*        → pay-service:8009
     - /api/reviews/*        → comment-rate-service:8010
     - /api/recommendations/* → recommender-ai-service:8011
+    - /api/chat/*           → recommender-ai-service:8011
+    - /api/events/*         → recommender-ai-service:8011
     """
 
     def _proxy(self, request, path):
         raw_query = request.META.get('QUERY_STRING', '')
 
+        if is_blocked_path(path):
+            return standard_response(False, None, 'Forbidden endpoint', 403)
+
         service_url = resolve_service(path)
         if not service_url:
-            return Response({
-                'error': 'Route không tồn tại',
-                'available_routes': [p for p, _ in ROUTE_TABLE],
-                'path': path
-            }, status=404)
+            return standard_response(
+                False,
+                {
+                    'available_routes': [p for p, _ in ROUTE_TABLE],
+                    'path': path,
+                },
+                'Route không tồn tại',
+                404,
+            )
 
         target_url = f"{service_url}/api/{path}"
         if raw_query:
@@ -80,33 +137,28 @@ class ProxyView(APIView):
 
         method = request.method.lower()
         try:
-            resp = getattr(http_requests, method)(
-                target_url,
-                headers=headers,
-                data=request.body,
-                timeout=30,
-                allow_redirects=False
-            )
-            content_type = resp.headers.get('Content-Type', 'application/json')
-            django_response = HttpResponse(
-                content=resp.content,
-                status=resp.status_code,
-                content_type=content_type
-            )
-            # Chuyển tiếp một số headers quan trọng
-            for header in ('X-Total-Count', 'X-Page', 'Location'):
-                if header in resp.headers:
-                    django_response[header] = resp.headers[header]
-            return django_response
+            # When client sent JSON, forward as JSON to preserve content-type and encoding
+            send_kwargs = dict(headers=headers, timeout=30, allow_redirects=False)
+            content_type = headers.get('Content-Type', '')
+            if content_type and content_type.split(';')[0].strip().lower() == 'application/json':
+                try:
+                    body_json = json.loads(request.body.decode('utf-8') or '{}')
+                    resp = getattr(http_requests, method)(target_url, json=body_json, **send_kwargs)
+                except Exception:
+                    # fallback to raw body if parsing fails
+                    resp = getattr(http_requests, method)(target_url, data=request.body, **send_kwargs)
+            else:
+                resp = getattr(http_requests, method)(target_url, data=request.body, **send_kwargs)
+            return build_upstream_response(resp)
 
         except http_requests.exceptions.ConnectionError:
             logger.error(f"Cannot connect to service at {service_url}")
-            return Response({'error': f'Service không khả dụng: {service_url}'}, status=503)
+            return standard_response(False, None, f'Service không khả dụng: {service_url}', 503)
         except http_requests.exceptions.Timeout:
-            return Response({'error': 'Service timeout'}, status=504)
+            return standard_response(False, None, 'Service timeout', 504)
         except Exception as e:
             logger.error(f"Proxy error: {e}")
-            return Response({'error': 'Lỗi gateway nội bộ'}, status=502)
+            return standard_response(False, None, 'Lỗi gateway nội bộ', 502)
 
     def get(self, request, path=''):
         return self._proxy(request, path)
@@ -248,13 +300,22 @@ class HealthCheckView(APIView):
         for name, url in SERVICES.items():
             try:
                 resp = http_requests.get(f"{url}/api/", timeout=3)
-                status_info[name] = {'status': 'up', 'url': url}
+                status_info[name] = {
+                    'status': 'up' if resp.status_code < 500 else 'down',
+                    'url': url,
+                    'status_code': resp.status_code,
+                }
             except Exception:
                 status_info[name] = {'status': 'down', 'url': url}
 
         all_up = all(v['status'] == 'up' for v in status_info.values())
-        return Response({
-            'gateway': 'up',
-            'services': status_info,
-            'overall': 'healthy' if all_up else 'degraded'
-        }, status=200)
+        return standard_response(
+            True,
+            {
+                'gateway': 'up',
+                'services': status_info,
+                'overall': 'healthy' if all_up else 'degraded',
+            },
+            'Gateway health summary',
+            200,
+        )

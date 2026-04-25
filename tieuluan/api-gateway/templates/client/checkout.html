@@ -890,6 +890,14 @@
                 saveOrderSnapshotToLocalHistory(orderResult);
 
                 const orderId = orderResult?.order?.id;
+                const purchaseItems = Array.isArray(cartData?.items) ? cartData.items : [];
+                purchaseItems.forEach((item) => {
+                    postAIEvent('purchase', Number(item.product_id), {
+                        order_id: orderId || null,
+                        quantity: Number(item.quantity || 1),
+                    });
+                });
+
                 showNotification(`Đặt hàng thành công${orderId ? ` #${orderId}` : ''}!`, 'success');
 
                 setTimeout(() => {
@@ -917,6 +925,37 @@
                     notification.remove();
                 }
             }, 4000);
+        }
+
+        function getCustomerIdForAI() {
+            try {
+                const info = JSON.parse(localStorage.getItem('customer_info') || '{}');
+                const id = Number(info.id || 0);
+                if (Number.isFinite(id) && id > 0) return id;
+            } catch {}
+            return 0;
+        }
+
+        async function postAIEvent(eventType, productId = null, payloadExtra = {}) {
+            const customerId = getCustomerIdForAI();
+            if (!customerId) return;
+            try {
+                await fetch('/api/events/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        event_type: eventType,
+                        service_type: 'gateway-checkout',
+                        product_id: productId,
+                        query_text: '',
+                        payload: {
+                            page: 'checkout',
+                            ...payloadExtra,
+                        },
+                    }),
+                });
+            } catch {}
         }
 
         async function loadCheckout() {
